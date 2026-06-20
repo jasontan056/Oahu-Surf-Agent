@@ -28,9 +28,55 @@ const regionIndices = {
   "East Side": 3
 };
 
-export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (req, res) => {
+export const forecast = onRequest({
+  cors: false,
+  timeoutSeconds: 120
+}, async (req, res) => {
   try {
+    // Manual CORS origin checking
+    const allowedOrigins = [
+      /https?:\/\/localhost(:\d+)?$/,
+      /https?:\/\/127\.0\.0\.1(:\d+)?$/,
+      "https://oahu-surf-agent-88a19.web.app",
+      "https://oahu-surf-agent-88a19.firebaseapp.com"
+    ];
+    const origin = req.headers.origin;
+    const isAllowed = origin && allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return allowed === origin;
+    });
+
+    if (origin) {
+      if (isAllowed) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, HEAD");
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+      } else {
+        console.warn(`Origin ${origin} not allowed by CORS`);
+      }
+    }
+
+    if (req.method === "OPTIONS") {
+      return res.status(204).send("");
+    }
+
     const forceRefresh = req.query.force === "true";
+    if (forceRefresh) {
+      const clientToken = req.query.forceToken;
+      const serverToken = process.env.FORCE_TOKEN || "sk-oahu-surf-agent";
+      if (clientToken !== serverToken) {
+        console.warn("Unauthorized attempt to bypass cache with force=true");
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "Invalid forceToken. Cache bypass is restricted."
+        });
+      }
+      console.log("Authorized force refresh triggered");
+    }
 
     // 1. Try to read from Firestore Cache, fall back to Memory cache
     if (!forceRefresh) {
@@ -44,7 +90,7 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
           
           if (ageMs < THREE_HOURS_MS) {
             console.log("Serving surf forecast from Firestore cache");
-            res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+            res.setHeader("Cache-Control", "public, max-age=60, s-maxage=10800, stale-while-revalidate=600");
             return res.status(200).json(cacheData.forecast);
           }
         }
@@ -54,7 +100,7 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
         const ageMs = Date.now() - memoryCacheTime;
         if (memoryCache && ageMs < THREE_HOURS_MS) {
           console.log("Serving surf forecast from In-Memory cache");
-          res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+          res.setHeader("Cache-Control", "public, max-age=60, s-maxage=10800, stale-while-revalidate=600");
           return res.status(200).json(memoryCache);
         }
       }
@@ -241,7 +287,7 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
       console.warn("Firestore cache write failed (database may not be initialized). Cached in-memory only:", firestoreError.message);
     }
 
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Cache-Control", "public, max-age=60, s-maxage=10800, stale-while-revalidate=600");
     return res.status(200).json(finalForecast);
 
   } catch (error) {

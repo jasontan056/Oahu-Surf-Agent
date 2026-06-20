@@ -65,12 +65,11 @@ function setupEventListeners() {
 async function fetchForecast(force = false) {
   showLoading();
   try {
-    let url = '/api/forecast';
-    if (force) {
-      url += '?force=true';
-    }
+    const url = '/api/forecast';
+    // Use no-cache options if forced, bypassing local browser cache but not backend database caches
+    const options = force ? { cache: 'no-cache' } : {};
     
-    const response = await fetch(url);
+    const response = await fetch(url, options);
     if (!response.ok) {
       throw new Error(`Server error: ${response.status}`);
     }
