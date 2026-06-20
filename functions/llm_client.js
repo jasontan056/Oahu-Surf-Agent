@@ -1,10 +1,10 @@
-// DeepSeek API client for generating surf forecasts
-export async function generateLLMForecast(dataSummary) {
+// Narrative generation service client for generating surf forecast texts
+export async function generateNarrativeForecast(dataSummary) {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
-    console.warn("DEEPSEEK_API_KEY is not defined. Skipping LLM forecast generation.");
+    console.warn("DEEPSEEK_API_KEY is not defined. Skipping narrative forecast generation.");
     return {
-      outlook: "DeepSeek API key not configured. Showing raw mathematical calculations only.",
+      outlook: "Forecast narrative key not configured. Showing raw mathematical calculations only.",
       regions: {
         "North Shore": "N/A",
         "South Shore": "N/A",
@@ -63,9 +63,9 @@ Your tone should be authoritative, local, and focused on wave quality, swell ang
     const contentText = result.choices[0].message.content;
     return JSON.parse(contentText);
   } catch (error) {
-    console.error("Error communicating with DeepSeek:", error);
+    console.error("Error communicating with narrative forecast service:", error);
     return {
-      outlook: `Failed to generate LLM forecast: ${error.message}. Showing mathematical calculations only.`,
+      outlook: `Failed to generate narrative forecast: ${error.message}. Showing mathematical calculations only.`,
       regions: {
         "North Shore": "Error generating narrative.",
         "South Shore": "Error generating narrative.",

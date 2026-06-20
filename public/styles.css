@@ -356,7 +356,7 @@ body {
 .spot-card {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: auto;
 }
 
 .spot-card:hover {
@@ -469,15 +469,15 @@ body {
 .overview-quality-badge.choppy { background: rgba(239, 68, 68, 0.15); color: var(--color-choppy); border: 1px solid rgba(239, 68, 68, 0.25); }
 .overview-quality-badge.blown-out { background: rgba(185, 28, 28, 0.15); color: var(--color-blown); border: 1px solid rgba(185, 28, 28, 0.25); }
 
-/* LLM Spot Analysis */
-.spot-ai-forecast {
+/* Spot Narrative Analysis */
+.spot-narrative-forecast {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding-top: 1rem;
   margin-bottom: 1.25rem;
   flex-grow: 1;
 }
 
-.ai-label {
+.narrative-label {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--accent-cyan);
@@ -489,16 +489,56 @@ body {
   gap: 0.35rem;
 }
 
-.ai-label::before {
+.narrative-label::before {
   content: '✦';
   font-size: 0.9rem;
 }
 
-.ai-text {
+.narrative-text {
   font-size: 0.88rem;
   color: var(--text-secondary);
   line-height: 1.5;
   font-style: italic;
+}
+
+/* Star Button & Icon Styling */
+.star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  outline: none;
+}
+
+.star-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(250, 204, 21, 0.7);
+  transform: scale(1.1);
+}
+
+.star-btn.active {
+  color: #facc15;
+  filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.5));
+}
+
+.star-btn.active:hover {
+  transform: scale(1.1);
+  color: #fede58;
+}
+
+.star-icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
 }
 
 /* Expandable Detail Panel */

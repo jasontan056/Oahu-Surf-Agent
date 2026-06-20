@@ -18,6 +18,26 @@ const regionSummaryText = document.getElementById('region-summary-text');
 const regionTabs = document.querySelectorAll('.nav-tab');
 const tideTabs = document.querySelectorAll('.tide-tab');
 
+// Starred Spots Helpers
+function getStarredSpots() {
+  try {
+    return JSON.parse(localStorage.getItem('starred_spots')) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function toggleStarSpot(spotId) {
+  let starred = getStarredSpots();
+  if (starred.includes(spotId)) {
+    starred = starred.filter(id => id !== spotId);
+  } else {
+    starred.push(spotId);
+  }
+  localStorage.setItem('starred_spots', JSON.stringify(starred));
+  renderSpots();
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   fetchForecast();
@@ -89,7 +109,7 @@ function showLoading() {
   spotsGridEl.innerHTML = `
     <div class="loading-overlay">
       <div class="spinner"></div>
-      <p>Consulting physical models and generating AI forecast...</p>
+      <p>Consulting physical models and generating forecast report...</p>
     </div>
   `;
   outlookTextEl.textContent = "Updating outlook narrative...";
@@ -115,7 +135,7 @@ function renderDashboard() {
   lastUpdatedEl.textContent = `Updated: ${updateDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} HST`;
 
   // 2. Swell Outlook
-  outlookTextEl.textContent = forecastData.llmForecast?.outlook || "Swell forecast summary currently unavailable.";
+  outlookTextEl.textContent = forecastData.narrativeForecast?.outlook || "Swell forecast summary currently unavailable.";
 
   // 3. Regional Summary Box
   if (activeRegion === 'all') {
@@ -123,7 +143,7 @@ function renderDashboard() {
   } else {
     regionSummaryContainer.style.display = 'block';
     regionSummaryTitle.textContent = `${activeRegion} Outlook`;
-    regionSummaryText.textContent = forecastData.llmForecast?.regions?.[activeRegion] || "Narrative forecast unavailable for this shore.";
+    regionSummaryText.textContent = forecastData.narrativeForecast?.regions?.[activeRegion] || "Narrative forecast unavailable for this shore.";
   }
 
   // 4. Render Spots and Tides
@@ -175,9 +195,8 @@ function renderSpots() {
   if (!forecastData || !forecastData.spotsList || !forecastData.days) return;
   spotsGridEl.innerHTML = '';
 
-  // Filter spots by region
   // Filter spots by region and search query
-  let filteredSpots = forecastData.spotsList;
+  let filteredSpots = [...forecastData.spotsList];
   
   if (activeRegion !== 'all') {
     filteredSpots = filteredSpots.filter(s => s.region === activeRegion);
@@ -191,6 +210,17 @@ function renderSpots() {
       s.difficulty.toLowerCase().includes(searchQuery)
     );
   }
+
+  // Sort starred spots to the top
+  const starredSpots = getStarredSpots();
+  filteredSpots.sort((a, b) => {
+    const aStarred = starredSpots.includes(a.id) ? 1 : 0;
+    const bStarred = starredSpots.includes(b.id) ? 1 : 0;
+    if (aStarred !== bStarred) {
+      return bStarred - aStarred; // Starred first
+    }
+    return 0; // Maintain original order
+  });
 
   if (filteredSpots.length === 0) {
     spotsGridEl.innerHTML = '<div class="loading-overlay"><p>No spots found matching filters.</p></div>';
@@ -228,12 +258,15 @@ function renderSpots() {
       ? "Flat" 
       : `${Math.round(peakFace * 0.7)}-${peakFace} ft`;
 
-    // AI Prediction text for this spot
-    const aiSpotText = forecastData.llmForecast?.spots?.[spot.id] || "No spot-specific predictions generated.";
+    // Narrative Prediction text for this spot
+    const spotNarrativeText = forecastData.narrativeForecast?.spots?.[spot.id] || "No spot-specific predictions generated.";
 
     const card = document.createElement('div');
     card.className = 'card spot-card animate-fade-in';
     card.id = `spot-card-${spot.id}`;
+
+    const isStarred = starredSpots.includes(spot.id);
+    const starClass = isStarred ? 'star-btn active' : 'star-btn';
 
     // Spot Card HTML structure
     card.innerHTML = `
@@ -242,6 +275,11 @@ function renderSpots() {
           <span class="spot-name">${spot.name}</span>
           <span class="spot-region">${spot.region}</span>
         </div>
+        <button class="${starClass}" data-spot="${spot.id}" title="${isStarred ? 'Unstar this spot' : 'Star this spot'}">
+          <svg class="star-icon" viewBox="0 0 24 24">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+          </svg>
+        </button>
       </div>
       
       <div class="spot-badges">
@@ -262,9 +300,9 @@ function renderSpots() {
         </div>
       </div>
 
-      <div class="spot-ai-forecast">
-        <div class="ai-label">AI Spot Analysis</div>
-        <p class="ai-text">${aiSpotText}</p>
+      <div class="spot-narrative-forecast">
+        <div class="narrative-label">Spot Analysis</div>
+        <p class="narrative-text">${spotNarrativeText}</p>
       </div>
 
       <button class="details-toggle" data-spot="${spot.id}">
@@ -279,6 +317,13 @@ function renderSpots() {
         ${renderSevenDayDetails(spot.id)}
       </div>
     `;
+
+    // Hook up star button click
+    const starBtn = card.querySelector('.star-btn');
+    starBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleStarSpot(spot.id);
+    });
 
     // Hook up expandable detail toggle
     const toggleBtn = card.querySelector('.details-toggle');

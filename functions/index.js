@@ -1,8 +1,12 @@
 import { onRequest } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
 import admin from "firebase-admin";
 import { spots } from "./config.js";
 import { calculateSpotWaveHeight, calculateWindQuality } from "./forecaster.js";
-import { generateLLMForecast } from "./llm_client.js";
+import { generateNarrativeForecast } from "./llm_client.js";
+
+// Declare secret for DeepSeek API Key
+const deepseekApiKey = defineSecret("DEEPSEEK_API_KEY");
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
@@ -30,7 +34,8 @@ const regionIndices = {
 
 export const forecast = onRequest({
   cors: false,
-  timeoutSeconds: 120
+  timeoutSeconds: 120,
+  secrets: [deepseekApiKey]
 }, async (req, res) => {
   try {
     // Vary response based on Origin to prevent CDN cache collision across origins
@@ -262,16 +267,16 @@ export const forecast = onRequest({
       }, {})
     }));
 
-    // 6. Query DeepSeek
-    console.log("Generating surf analysis report using DeepSeek v4 Flash...");
-    const llmForecast = await generateLLMForecast(dataSummaryForLLM);
+    // 6. Query narrative generation service
+    console.log("Generating surf analysis report...");
+    const narrativeForecast = await generateNarrativeForecast(dataSummaryForLLM);
 
     // 7. Assemble final payload
     const finalForecast = {
       updatedAt: new Date().toISOString(),
       spotsList: spots,
       days: daysData,
-      llmForecast
+      narrativeForecast
     };
 
     // 8. Cache locally in memory
