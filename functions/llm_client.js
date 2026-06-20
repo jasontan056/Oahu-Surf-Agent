@@ -1,8 +1,8 @@
 // Narrative generation service client for generating surf forecast texts
 export async function generateNarrativeForecast(dataSummary) {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const apiKey = process.env.DEEPSEEK_API_SECRET || process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
-    console.warn("DEEPSEEK_API_KEY is not defined. Skipping narrative forecast generation.");
+    console.warn("API key is not defined. Skipping narrative forecast generation.");
     return {
       outlook: "Forecast narrative key not configured. Showing raw mathematical calculations only.",
       regions: {

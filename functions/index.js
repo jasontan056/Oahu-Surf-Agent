@@ -6,7 +6,7 @@ import { calculateSpotWaveHeight, calculateWindQuality } from "./forecaster.js";
 import { generateNarrativeForecast } from "./llm_client.js";
 
 // Declare secret for DeepSeek API Key
-const deepseekApiKey = defineSecret("DEEPSEEK_API_KEY");
+const deepseekApiSecret = defineSecret("DEEPSEEK_API_SECRET");
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
@@ -35,7 +35,7 @@ const regionIndices = {
 export const forecast = onRequest({
   cors: false,
   timeoutSeconds: 120,
-  secrets: [deepseekApiKey]
+  secrets: [deepseekApiSecret]
 }, async (req, res) => {
   try {
     // Vary response based on Origin to prevent CDN cache collision across origins
