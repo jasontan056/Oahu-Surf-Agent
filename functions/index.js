@@ -33,6 +33,9 @@ export const forecast = onRequest({
   timeoutSeconds: 120
 }, async (req, res) => {
   try {
+    // Vary response based on Origin to prevent CDN cache collision across origins
+    res.setHeader("Vary", "Origin");
+
     // Manual CORS origin checking
     const allowedOrigins = [
       /https?:\/\/localhost(:\d+)?$/,
