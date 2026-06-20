@@ -231,11 +231,14 @@ function renderSpots() {
     // Get Day 1 calculations for primary card display
     const todayForecast = forecastData.days[0]?.spots[spot.id] || [];
     
-    // Find the peak conditions (max wave size) for Today
+    // Find the peak conditions (max wave size and best rating score) for Today
     let peakFace = 0;
     let peakHawaiian = 0;
     let bestWindClass = 'choppy';
     let bestWindQuality = 'Onshore';
+    let bestRating = 'Poor';
+    let bestRatingClass = 'rating-poor';
+    let bestRatingScore = 0;
     
     // Default to the first time slot (Morning) if no clear peak is found
     if (todayForecast.length > 0) {
@@ -243,12 +246,22 @@ function renderSpots() {
       peakHawaiian = todayForecast[0].hawaiianHeight;
       bestWindClass = todayForecast[0].windClass;
       bestWindQuality = todayForecast[0].windQuality;
+      bestRating = todayForecast[0].spotRating || 'Poor';
+      bestRatingClass = todayForecast[0].spotRatingClass || 'rating-poor';
+      bestRatingScore = todayForecast[0].spotRatingScore || 0;
       
-      // Look for the absolute max wave height today
+      // Look for the absolute max wave height today and the highest spot rating score
       todayForecast.forEach(slot => {
         if (slot.faceHeight > peakFace) {
           peakFace = slot.faceHeight;
           peakHawaiian = slot.hawaiianHeight;
+        }
+        if ((slot.spotRatingScore || 0) > bestRatingScore) {
+          bestRating = slot.spotRating;
+          bestRatingClass = slot.spotRatingClass;
+          bestRatingScore = slot.spotRatingScore;
+          bestWindClass = slot.windClass;
+          bestWindQuality = slot.windQuality;
         }
       });
     }
@@ -258,8 +271,33 @@ function renderSpots() {
       ? "Flat" 
       : `${Math.round(peakFace * 0.7)}-${peakFace} ft`;
 
-    // Narrative Prediction text for this spot
-    const spotNarrativeText = forecastData.narrativeForecast?.spots?.[spot.id] || "No spot-specific predictions generated.";
+    // AI Spot Interpreter Data
+    const spotAiData = forecastData.narrativeForecast?.spots?.[spot.id] || {};
+    const spotNarrativeText = spotAiData.analysis || "No spot-specific predictions generated.";
+
+    let finalRating = bestRating;
+    let finalRatingClass = bestRatingClass;
+    let finalRatingScore = bestRatingScore;
+
+    if (spotAiData.ratingRefined && typeof spotAiData.scoreRefined === 'number') {
+      finalRating = spotAiData.ratingRefined;
+      finalRatingScore = spotAiData.scoreRefined;
+      
+      const score = spotAiData.scoreRefined;
+      if (score < 15) finalRatingClass = "rating-very-poor";
+      else if (score < 35) finalRatingClass = "rating-poor";
+      else if (score < 50) finalRatingClass = "rating-poor-to-fair";
+      else if (score < 70) finalRatingClass = "rating-fair";
+      else if (score < 85) finalRatingClass = "rating-fair-to-good";
+      else if (score < 95) finalRatingClass = "rating-good";
+      else finalRatingClass = "rating-epic";
+    }
+
+    if (peakFace === 0) {
+      finalRating = "Flat";
+      finalRatingClass = "rating-flat";
+      finalRatingScore = 0;
+    }
 
     const card = document.createElement('div');
     card.className = 'card spot-card animate-fade-in';
@@ -294,14 +332,42 @@ function renderSpots() {
           <div class="overview-val-sub">${peakHawaiian}ft Hawaiian peak</div>
         </div>
         <div class="overview-box">
+          <div class="overview-label">Spot Rating</div>
+          <div class="overview-rating-badge ${finalRatingClass}">${finalRating}</div>
+          <div class="overview-val-sub">Score: ${finalRatingScore}/100</div>
+        </div>
+        <div class="overview-box">
           <div class="overview-label">Wind Quality</div>
           <div class="overview-quality-badge ${bestWindClass}">${bestWindQuality}</div>
           <div class="overview-val-sub">Today's winds</div>
         </div>
       </div>
 
+      <div class="ai-insights-container">
+        <div class="insight-tag">
+          <span class="insight-icon">🌊</span>
+          <span class="insight-label">Shape:</span>
+          <span class="insight-value">${spotAiData.waveShape || 'N/A'}</span>
+        </div>
+        <div class="insight-tag">
+          <span class="insight-icon">🏄‍♂️</span>
+          <span class="insight-label">Board:</span>
+          <span class="insight-value">${spotAiData.recommendedBoard || 'N/A'}</span>
+        </div>
+        <div class="insight-tag">
+          <span class="insight-icon">👥</span>
+          <span class="insight-label">Crowd:</span>
+          <span class="insight-value">${spotAiData.crowdFactor || 'N/A'}</span>
+        </div>
+        <div class="insight-tag risk-${getRiskClass(spotAiData.safetyRisk)}">
+          <span class="insight-icon">⚠️</span>
+          <span class="insight-label">Safety:</span>
+          <span class="insight-value">${spotAiData.safetyRisk || 'N/A'}</span>
+        </div>
+      </div>
+
       <div class="spot-narrative-forecast">
-        <div class="narrative-label">Spot Analysis</div>
+        <div class="narrative-label">AI Spot Interpretation</div>
         <p class="narrative-text">${spotNarrativeText}</p>
       </div>
 
@@ -365,9 +431,14 @@ function renderSevenDayDetails(spotId) {
         ? "0ft"
         : `${slot.hawaiianHeight}ft (${slot.faceHeight}ft face)`;
 
+      // Spot rating text/class
+      const ratingText = slot.faceHeight === 0 ? "Flat" : slot.spotRating;
+      const ratingClass = slot.faceHeight === 0 ? "rating-flat" : (slot.spotRatingClass || "rating-poor");
+
       html += `
         <div class="detail-grid">
           <div class="detail-metric"><strong>${slot.time}:</strong> ${surfText}</div>
+          <div class="detail-metric"><span class="detail-rating-badge ${ratingClass}">${ratingText}</span></div>
           <div class="detail-metric">💨 ${windText}</div>
           <div class="detail-metric">🌊 ${swellText}</div>
         </div>
@@ -388,4 +459,13 @@ function getWindCardinal(degrees) {
   const cardinals = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
   const val = Math.floor((degrees / 22.5) + 0.5);
   return cardinals[val % 16];
+}
+
+// Parse risk levels to CSS classes
+function getRiskClass(safetyRisk) {
+  if (!safetyRisk) return 'low';
+  const risk = safetyRisk.toLowerCase();
+  if (risk.includes('high')) return 'high';
+  if (risk.includes('moderate') || risk.includes('medium')) return 'moderate';
+  return 'low';
 }

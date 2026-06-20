@@ -2,7 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import admin from "firebase-admin";
 import { spots } from "./config.js";
-import { calculateSpotWaveHeight, calculateWindQuality } from "./forecaster.js";
+import { calculateSpotWaveHeight, calculateWindQuality, applyWindShadowing, determineTideStage, calculateSpotQuality } from "./forecaster.js";
 import { generateNarrativeForecast } from "./llm_client.js";
 
 // Declare secret for DeepSeek API Key
@@ -225,22 +225,33 @@ export const forecast = onRequest({
           const windSpeed = spotHourlyWeather.wind_speed_10m[timeIdx];
           const windDir = spotHourlyWeather.wind_direction_10m[timeIdx];
 
+          const tideEvents = (spot.region === "North Shore" || spot.region === "East Side")
+            ? dayData.tides.mok
+            : dayData.tides.hnl;
+          const tideStage = determineTideStage(tideEvents, target.hourStr);
+
+          const shadowedWindSpeed = applyWindShadowing(spot, windSpeed, windDir);
           const waveMetrics = calculateSpotWaveHeight(spot, deepwaterHeight, period, direction);
-          const windQuality = calculateWindQuality(spot, windSpeed, windDir);
+          const windQuality = calculateWindQuality(spot, shadowedWindSpeed, windDir);
+          const spotQuality = calculateSpotQuality(spot, waveMetrics, shadowedWindSpeed, windDir, period, tideStage);
 
           dayData.spots[spot.id].push({
             time: target.label,
             timeStr: target.hourStr,
             faceHeight: waveMetrics.faceHeight,
             hawaiianHeight: waveMetrics.hawaiianHeight,
-            windSpeed: Math.round(windSpeed),
+            windSpeed: Math.round(shadowedWindSpeed),
             windDir,
             windQuality: windQuality.label,
             windClass: windQuality.class,
             windDesc: windQuality.description,
             swellHeight: Math.round(deepwaterHeight * 2) / 2,
             swellPeriod: Math.round(period),
-            swellDir: Math.round(direction)
+            swellDir: Math.round(direction),
+            tideStage,
+            spotRating: spotQuality.label,
+            spotRatingClass: spotQuality.class,
+            spotRatingScore: spotQuality.score
           });
         }
       }
@@ -256,11 +267,19 @@ export const forecast = onRequest({
         acc[spotId] = {
           name: spotDetails.name,
           region: spotDetails.region,
+          type: spotDetails.type,
+          difficulty: spotDetails.difficulty,
+          description: spotDetails.description,
+          optimalSwell: spotDetails.optimalSwell,
+          optimalWind: spotDetails.optimalWind,
+          optimalTide: spotDetails.optimalTide,
           forecast: day.spots[spotId].map(f => ({
             time: f.time,
             surf: `${f.hawaiianHeight}ft Hawaiian (${f.faceHeight}ft face)`,
             wind: `${f.windSpeed}kts from ${f.windDir}° (${f.windQuality})`,
-            swell: `${f.swellHeight}ft @ ${f.swellPeriod}s from ${f.swellDir}°`
+            swell: `${f.swellHeight}ft @ ${f.swellPeriod}s from ${f.swellDir}°`,
+            rating: `${f.spotRating} (score: ${f.spotRatingScore}/100)`,
+            tideStage: f.tideStage
           }))
         };
         return acc;

@@ -13,7 +13,9 @@ export const spots = [
     magnification: 1.8,
     type: "Reefbreak",
     difficulty: "Expert",
-    description: "The world's most famous, heavy barrel. Breaking over a shallow, jagged reef. Pipeline is a steep left, while Backdoor is the fast right."
+    description: "The world's most famous, heavy barrel. Breaking over a shallow, jagged reef. Pipeline is a steep left, while Backdoor is the fast right.",
+    optimalTide: "medium",
+    tideSensitivity: 0.6
   },
   {
     id: "waimea",
@@ -27,7 +29,9 @@ export const spots = [
     magnification: 2.2,
     type: "Reefbreak",
     difficulty: "Expert",
-    description: "The birthplace of big wave riding. Needs massive swells to start breaking properly. Heavy shorebreak and long, scaling walls."
+    description: "The birthplace of big wave riding. Needs massive swells to start breaking properly. Heavy shorebreak and long, scaling walls.",
+    optimalTide: "medium",
+    tideSensitivity: 0.5
   },
   {
     id: "sunset",
@@ -41,7 +45,9 @@ export const spots = [
     magnification: 1.5,
     type: "Reefbreak",
     difficulty: "Advanced",
-    description: "A wide, shifty arena with massive waves and strong currents. Sunset is a powerful right-hand reef break."
+    description: "A wide, shifty arena with massive waves and strong currents. Sunset is a powerful right-hand reef break.",
+    optimalTide: "medium",
+    tideSensitivity: 0.4
   },
   {
     id: "haleiwa",
@@ -55,7 +61,9 @@ export const spots = [
     magnification: 1.4,
     type: "Reef / Point",
     difficulty: "Advanced",
-    description: "A high-performance right-hander that breaks over a shallow reef shelf. Heavy current and a challenging rip."
+    description: "A high-performance right-hander that breaks over a shallow reef shelf. Heavy current and a challenging rip.",
+    optimalTide: "low",
+    tideSensitivity: 0.8
   },
   {
     id: "laniakea",
@@ -69,7 +77,9 @@ export const spots = [
     magnification: 1.3,
     type: "Reef / Point",
     difficulty: "Advanced",
-    description: "A long, walling right-hander that is highly popular and can hold size. Watch out for the strong current and turtles."
+    description: "A long, walling right-hander that is highly popular and can hold size. Watch out for the strong current and turtles.",
+    optimalTide: "medium",
+    tideSensitivity: 0.5
   },
   {
     id: "chuns",
@@ -83,7 +93,9 @@ export const spots = [
     magnification: 1.1,
     type: "Reefbreak",
     difficulty: "Intermediate",
-    description: "A friendly, long right-hander popular with longboarders, but can get hollow and fast when the swell is up."
+    description: "A friendly, long right-hander popular with longboarders, but can get hollow and fast when the swell is up.",
+    optimalTide: "medium",
+    tideSensitivity: 0.4
   },
   {
     id: "rockypoint",
@@ -97,7 +109,9 @@ export const spots = [
     magnification: 1.2,
     type: "Reefbreak",
     difficulty: "Advanced",
-    description: "Highly consistent, offering both high-performance lefts and rights. Shallow, sharp reef and a very crowded peak."
+    description: "Highly consistent, offering both high-performance lefts and rights. Shallow, sharp reef and a very crowded peak.",
+    optimalTide: "medium",
+    tideSensitivity: 0.7
   },
 
   // South Shore
@@ -113,7 +127,9 @@ export const spots = [
     magnification: 1.3,
     type: "Reefbreak",
     difficulty: "Advanced",
-    description: "Oahu's premier south shore wave. A fast, hollow left-hander that breaks along the edge of the yacht harbor channel."
+    description: "Oahu's premier south shore wave. A fast, hollow left-hander that breaks along the edge of the yacht harbor channel.",
+    optimalTide: "low",
+    tideSensitivity: 0.8
   },
   {
     id: "kaisers",
@@ -127,7 +143,9 @@ export const spots = [
     magnification: 1.1,
     type: "Reefbreak",
     difficulty: "Advanced",
-    description: "A short, fast, punchy right-hander that is highly popular and breaks over a shallow reef."
+    description: "A short, fast, punchy right-hander that is highly popular and breaks over a shallow reef.",
+    optimalTide: "medium",
+    tideSensitivity: 0.7
   },
   {
     id: "queens",
@@ -141,7 +159,9 @@ export const spots = [
     magnification: 1.0,
     type: "Reefbreak",
     difficulty: "Intermediate",
-    description: "A beautiful, peeling right-hander in Waikiki. Highly historical and the home of modern longboarding."
+    description: "A beautiful, peeling right-hander in Waikiki. Highly historical and the home of modern longboarding.",
+    optimalTide: "medium",
+    tideSensitivity: 0.5
   },
   {
     id: "canoes",
@@ -155,7 +175,9 @@ export const spots = [
     magnification: 0.7,
     type: "Reefbreak",
     difficulty: "Beginner",
-    description: "A gentle, rolling wave perfect for beginners, surf schools, and outrigger canoes. Breaks over a deep, sandy reef."
+    description: "A gentle, rolling wave perfect for beginners, surf schools, and outrigger canoes. Breaks over a deep, sandy reef.",
+    optimalTide: "any",
+    tideSensitivity: 0.2
   },
   {
     id: "cliffs",
@@ -169,7 +191,9 @@ export const spots = [
     magnification: 1.1,
     type: "Reefbreak",
     difficulty: "Intermediate",
-    description: "Consistently catches any swell. Offers multiple shifty peaks with deep-water channels. Often windy."
+    description: "Consistently catches any swell. Offers multiple shifty peaks with deep-water channels. Often windy.",
+    optimalTide: "any",
+    tideSensitivity: 0.3
   },
   {
     id: "whiteplains",
@@ -183,7 +207,9 @@ export const spots = [
     magnification: 0.8,
     type: "Beach / Reef",
     difficulty: "Beginner",
-    description: "A fun, soft longboard wave on the Ewa plain. Ideal for beginners and families."
+    description: "A fun, soft longboard wave on the Ewa plain. Ideal for beginners and families.",
+    optimalTide: "any",
+    tideSensitivity: 0.2
   },
   {
     id: "secrets",
@@ -197,7 +223,9 @@ export const spots = [
     magnification: 1.1,
     type: "Reefbreak",
     difficulty: "Advanced",
-    description: "A fast, hollow reef break in Aina Haina. It works on solid south swells but can get very shallow and sharp at low tide."
+    description: "A fast, hollow reef break in Aina Haina. It works on solid south swells but can get very shallow and sharp at low tide.",
+    optimalTide: "low",
+    tideSensitivity: 0.8
   },
   {
     id: "toes",
@@ -211,7 +239,9 @@ export const spots = [
     magnification: 0.8,
     type: "Reefbreak",
     difficulty: "Intermediate",
-    description: "A long, gentle wave popular for longboarding in Aina Haina. It has a soft, peeling profile and breaks over a deep reef."
+    description: "A long, gentle wave popular for longboarding in Aina Haina. It has a soft, peeling profile and breaks over a deep reef.",
+    optimalTide: "any",
+    tideSensitivity: 0.3
   },
 
   // West Side
@@ -227,7 +257,9 @@ export const spots = [
     magnification: 1.4,
     type: "Point / Reef",
     difficulty: "Advanced",
-    description: "A legendary, powerful right-hand point break that can hold huge winter swells and nice summer south swells."
+    description: "A legendary, powerful right-hand point break that can hold huge winter swells and nice summer south swells.",
+    optimalTide: "medium",
+    tideSensitivity: 0.5
   },
   {
     id: "tracks",
@@ -241,7 +273,9 @@ export const spots = [
     magnification: 1.0,
     type: "Reefbreak",
     difficulty: "Intermediate",
-    description: "Located near the power plant. Offers fun, peeling lefts and rights over a mix of reef and sand."
+    description: "Located near the power plant. Offers fun, peeling lefts and rights over a mix of reef and sand.",
+    optimalTide: "medium",
+    tideSensitivity: 0.5
   },
   {
     id: "yokohama",
@@ -255,7 +289,9 @@ export const spots = [
     magnification: 1.3,
     type: "Beachbreak",
     difficulty: "Expert",
-    description: "A heavy, fast shorebreak that breaks in shallow water. Beautiful but highly dangerous."
+    description: "A heavy, fast shorebreak that breaks in shallow water. Beautiful but highly dangerous.",
+    optimalTide: "low",
+    tideSensitivity: 0.8
   },
 
   // East Side (Windward)
@@ -271,7 +307,9 @@ export const spots = [
     magnification: 1.2,
     type: "Beachbreak",
     difficulty: "Intermediate",
-    description: "Famous bodysurfing and bodyboarding spot. A heavy shorebreak breaking on sand, with scenic cliffs behind."
+    description: "Famous bodysurfing and bodyboarding spot. A heavy shorebreak breaking on sand, with scenic cliffs behind.",
+    optimalTide: "medium",
+    tideSensitivity: 0.4
   },
   {
     id: "sandybeach",
@@ -285,7 +323,9 @@ export const spots = [
     magnification: 1.0,
     type: "Beachbreak",
     difficulty: "Advanced",
-    description: "Infamous shorebreak that breaks in inches of water directly on sand. Very dangerous, popular for bodyboarding."
+    description: "Infamous shorebreak that breaks in inches of water directly on sand. Very dangerous, popular for bodyboarding.",
+    optimalTide: "high",
+    tideSensitivity: 0.9
   },
   {
     id: "flatisland",
@@ -299,6 +339,8 @@ export const spots = [
     magnification: 0.6,
     type: "Reefbreak",
     difficulty: "Beginner",
-    description: "A soft, slow wave that breaks off Flat Island in Kailua Bay. Great for longboarding and kayak-surfing."
+    description: "A soft, slow wave that breaks off Flat Island in Kailua Bay. Great for longboarding and kayak-surfing.",
+    optimalTide: "medium",
+    tideSensitivity: 0.3
   }
 ];

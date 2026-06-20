@@ -421,7 +421,7 @@ body {
 /* Spot Wave and Wind Overview */
 .spot-overview {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 0.75rem;
   margin-bottom: 1.25rem;
 }
@@ -456,7 +456,7 @@ body {
 
 .overview-quality-badge {
   display: inline-block;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   padding: 0.15rem 0.5rem;
   border-radius: 9999px;
@@ -468,6 +468,100 @@ body {
 .overview-quality-badge.fair { background: rgba(245, 158, 11, 0.15); color: var(--color-fair); border: 1px solid rgba(245, 158, 11, 0.25); }
 .overview-quality-badge.choppy { background: rgba(239, 68, 68, 0.15); color: var(--color-choppy); border: 1px solid rgba(239, 68, 68, 0.25); }
 .overview-quality-badge.blown-out { background: rgba(185, 28, 28, 0.15); color: var(--color-blown); border: 1px solid rgba(185, 28, 28, 0.25); }
+
+/* Spot Rating Badges */
+.overview-rating-badge {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  margin-top: 0.25rem;
+  text-align: center;
+}
+
+.overview-rating-badge.rating-flat { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); }
+.overview-rating-badge.rating-very-poor { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); }
+.overview-rating-badge.rating-poor { background: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.25); }
+.overview-rating-badge.rating-poor-to-fair { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25); }
+.overview-rating-badge.rating-fair { background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid rgba(234, 179, 8, 0.25); }
+.overview-rating-badge.rating-fair-to-good { background: rgba(132, 204, 22, 0.15); color: #84cc16; border: 1px solid rgba(132, 204, 22, 0.25); }
+.overview-rating-badge.rating-good { background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.25); }
+.overview-rating-badge.rating-epic {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+  animation: pulse-epic 2s infinite alternate;
+}
+
+@keyframes pulse-epic {
+  0% { transform: scale(1); box-shadow: 0 0 4px rgba(168, 85, 247, 0.2); }
+  100% { transform: scale(1.05); box-shadow: 0 0 12px rgba(168, 85, 247, 0.5); }
+}
+
+/* AI Surf Interpreter Insights Row */
+.ai-insights-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.insight-tag {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.insight-icon {
+  font-size: 0.9rem;
+}
+
+.insight-label {
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.insight-value {
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dynamic Safety Risk Styling */
+.insight-tag.risk-low {
+  background: rgba(16, 185, 129, 0.03);
+  border-color: rgba(16, 185, 129, 0.15);
+}
+.insight-tag.risk-low .insight-value {
+  color: #10b981;
+}
+
+.insight-tag.risk-moderate {
+  background: rgba(245, 158, 11, 0.03);
+  border-color: rgba(245, 158, 11, 0.15);
+}
+.insight-tag.risk-moderate .insight-value {
+  color: #f59e0b;
+}
+
+.insight-tag.risk-high {
+  background: rgba(239, 68, 68, 0.04);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.insight-tag.risk-high .insight-value {
+  color: #ef4444;
+  font-weight: 700;
+}
 
 /* Spot Narrative Analysis */
 .spot-narrative-forecast {
@@ -607,14 +701,33 @@ body {
 
 .detail-grid {
   display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr;
+  grid-template-columns: 1.2fr 1fr 1.2fr 1.6fr;
   gap: 0.5rem;
   font-size: 0.78rem;
   color: var(--text-secondary);
   background: rgba(255, 255, 255, 0.01);
   padding: 0.5rem;
   border-radius: 6px;
+  align-items: center;
 }
+
+.detail-rating-badge {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.detail-rating-badge.rating-flat { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
+.detail-rating-badge.rating-very-poor { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.detail-rating-badge.rating-poor { background: rgba(249, 115, 22, 0.12); color: #f97316; }
+.detail-rating-badge.rating-poor-to-fair { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.detail-rating-badge.rating-fair { background: rgba(234, 179, 8, 0.12); color: #eab308; }
+.detail-rating-badge.rating-fair-to-good { background: rgba(132, 204, 22, 0.12); color: #84cc16; }
+.detail-rating-badge.rating-good { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
+.detail-rating-badge.rating-epic { background: rgba(168, 85, 247, 0.15); color: #c084fc; box-shadow: 0 0 4px rgba(168, 85, 247, 0.2); }
 
 .detail-metric strong {
   color: var(--text-primary);
