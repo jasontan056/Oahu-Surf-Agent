@@ -46,13 +46,19 @@
     </section>
 
     <!-- Navigation & Filters -->
-    <nav class="region-nav animate-fade-in">
-      <button class="nav-tab active" data-region="all">All Shores</button>
-      <button class="nav-tab" data-region="North Shore">North Shore</button>
-      <button class="nav-tab" data-region="South Shore">South Shore</button>
-      <button class="nav-tab" data-region="West Side">West Side</button>
-      <button class="nav-tab" data-region="East Side">East Side</button>
-    </nav>
+    <div class="filter-bar animate-fade-in">
+      <nav class="region-nav">
+        <button class="nav-tab active" data-region="all">All Shores</button>
+        <button class="nav-tab" data-region="North Shore">North Shore</button>
+        <button class="nav-tab" data-region="South Shore">South Shore</button>
+        <button class="nav-tab" data-region="West Side">West Side</button>
+        <button class="nav-tab" data-region="East Side">East Side</button>
+      </nav>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search spots..." />
+      </div>
+    </div>
 
     <!-- Regional Summary Text -->
     <div class="region-summary-box animate-fade-in" id="region-summary-container" style="display: none;">
