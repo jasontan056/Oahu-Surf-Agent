@@ -80,7 +80,10 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
       fetch(tideMOKUrl).then(r => r.json()).catch(() => ({ predictions: [] }))
     ]);
 
-    if (!marineRes.hourly || !weatherRes.hourly) {
+    const hasMarineHourly = Array.isArray(marineRes) ? (marineRes[0] && marineRes[0].hourly) : marineRes.hourly;
+    const hasWeatherHourly = Array.isArray(weatherRes) ? (weatherRes[0] && weatherRes[0].hourly) : weatherRes.hourly;
+
+    if (!hasMarineHourly || !hasWeatherHourly) {
       throw new Error("Failed to retrieve hourly forecast data from Open-Meteo.");
     }
 
@@ -111,7 +114,10 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
     const tidesMOK = parseTides(tideMOKRes.predictions);
 
     // 4. Align and group times by day
-    const times = marineRes[0]?.hourly?.time || marineRes.hourly?.time || [];
+    const times = Array.isArray(marineRes) 
+      ? (marineRes[0]?.hourly?.time || []) 
+      : (marineRes.hourly?.time || []);
+      
     if (times.length === 0) {
       throw new Error("Invalid hourly timestamp array returned by meteorological API.");
     }
