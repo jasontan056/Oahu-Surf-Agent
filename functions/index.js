@@ -8,6 +8,11 @@ import { generateLLMForecast } from "./llm_client.js";
 admin.initializeApp();
 const db = admin.firestore();
 
+// In-Memory cache fallback in case Firestore is not provisioned/enabled
+let memoryCache = null;
+let memoryCacheTime = 0;
+const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+
 // Helper to get day name safely
 function getDayName(dateStr) {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -15,11 +20,7 @@ function getDayName(dateStr) {
   return date.toLocaleDateString('en-US', { weekday: 'long' });
 }
 
-// Map regions to the representative Open-Meteo coordinate indices:
-// Index 0: North Shore
-// Index 1: South Shore
-// Index 2: West Side
-// Index 3: East Side
+// Map regions to representative coordinate indices
 const regionIndices = {
   "North Shore": 0,
   "South Shore": 1,
@@ -29,24 +30,37 @@ const regionIndices = {
 
 export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (req, res) => {
   try {
-    // 1. Check Firestore Cache
-    const cacheRef = db.collection("forecasts").doc("oahu");
-    const cacheDoc = await cacheRef.get();
-    
-    if (cacheDoc.exists) {
-      const cacheData = cacheDoc.data();
-      const ageMs = Date.now() - cacheData.updatedAt.toDate().getTime();
-      const threeHours = 3 * 60 * 60 * 1000;
-      
-      // If cache is fresh and not forced, return it
-      if (ageMs < threeHours && req.query.force !== "true") {
-        console.log("Serving surf forecast from Firestore cache");
-        res.setHeader("Cache-Control", "public, max-age=10800");
-        return res.status(200).json(cacheData.forecast);
+    const forceRefresh = req.query.force === "true";
+
+    // 1. Try to read from Firestore Cache, fall back to Memory cache
+    if (!forceRefresh) {
+      try {
+        const cacheRef = db.collection("forecasts").doc("oahu");
+        const cacheDoc = await cacheRef.get();
+        
+        if (cacheDoc.exists) {
+          const cacheData = cacheDoc.data();
+          const ageMs = Date.now() - cacheData.updatedAt.toDate().getTime();
+          
+          if (ageMs < THREE_HOURS_MS) {
+            console.log("Serving surf forecast from Firestore cache");
+            res.setHeader("Cache-Control", "public, max-age=10800");
+            return res.status(200).json(cacheData.forecast);
+          }
+        }
+      } catch (firestoreError) {
+        console.warn("Firestore cache read failed (database may not be initialized). Falling back to memory cache:", firestoreError.message);
+        
+        const ageMs = Date.now() - memoryCacheTime;
+        if (memoryCache && ageMs < THREE_HOURS_MS) {
+          console.log("Serving surf forecast from In-Memory cache");
+          res.setHeader("Cache-Control", "public, max-age=10800");
+          return res.status(200).json(memoryCache);
+        }
       }
     }
 
-    console.log("Cache expired or missing. Fetching fresh meteorological data...");
+    console.log("Fetching fresh meteorological data from APIs...");
 
     // 2. Fetch Meteorological Data
     // Representative lat/lons: Pipeline (NS), Ala Moana Bowls (SS), Makaha (WS), Sandy Beach (ES)
@@ -56,32 +70,28 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
     const marineUrl = `https://api.open-meteo.com/v1/marine?latitude=${lats}&longitude=${lons}&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction&timezone=Pacific%2FHonolulu`;
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&timezone=Pacific%2FHonolulu`;
     
-    // NOAA Tides: Honolulu (Station 1612340) for South/West/North, Mokuoloe (Station 1612480) for East
     const tideHNLUrl = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=today&product=predictions&datum=mllw&format=json&units=english&time_zone=lst_ldt&station=1612340&range=72&interval=hilo`;
     const tideMOKUrl = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=today&product=predictions&datum=mllw&format=json&units=english&time_zone=lst_ldt&station=1612480&range=72&interval=hilo`;
 
     const [marineRes, weatherRes, tideHNLRes, tideMOKRes] = await Promise.all([
       fetch(marineUrl).then(r => r.json()),
       fetch(weatherUrl).then(r => r.json()),
-      fetch(tideHNLUrl).then(r => r.json()).catch(err => ({ predictions: [] })),
-      fetch(tideMOKUrl).then(r => r.json()).catch(err => ({ predictions: [] }))
+      fetch(tideHNLUrl).then(r => r.json()).catch(() => ({ predictions: [] })),
+      fetch(tideMOKUrl).then(r => r.json()).catch(() => ({ predictions: [] }))
     ]);
 
-    // Validate responses
     if (!marineRes.hourly || !weatherRes.hourly) {
-      throw new Error("Failed to fetch weather or marine data from Open-Meteo.");
+      throw new Error("Failed to retrieve hourly forecast data from Open-Meteo.");
     }
 
-    // 3. Parse Tide Data by Day
+    // 3. Parse Tide predictions
     const parseTides = (predictions) => {
       const tideDays = {};
       if (!predictions) return tideDays;
       for (const pred of predictions) {
-        // Date format: "2026-06-20 04:30"
         const [datePart, timePart] = pred.t.split(" ");
         if (!tideDays[datePart]) tideDays[datePart] = [];
         
-        // Format time to 12h
         const [hour, min] = timePart.split(":");
         const hourNum = parseInt(hour);
         const ampm = hourNum >= 12 ? "PM" : "AM";
@@ -100,16 +110,13 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
     const tidesHNL = parseTides(tideHNLRes.predictions);
     const tidesMOK = parseTides(tideMOKRes.predictions);
 
-    // 4. Group Forecast Data into 3 Days
-    // We'll extract 3 distinct dates from the Open-Meteo hourly timestamps
+    // 4. Align and group times by day
     const times = marineRes[0]?.hourly?.time || marineRes.hourly?.time || [];
     if (times.length === 0) {
-      throw new Error("Invalid hourly time arrays in Open-Meteo response.");
+      throw new Error("Invalid hourly timestamp array returned by meteorological API.");
     }
 
-    // Find the unique dates in the forecast
     const uniqueDates = [...new Set(times.map(t => t.split("T")[0]))].slice(0, 3);
-    
     const daysData = [];
 
     for (const dateStr of uniqueDates) {
@@ -123,7 +130,6 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
         spots: {}
       };
 
-      // Key times of the day to evaluate (6 AM, 12 PM, 6 PM)
       const targetHours = [
         { label: "Morning", hourStr: "06:00" },
         { label: "Mid-day", hourStr: "12:00" },
@@ -132,32 +138,25 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
 
       for (const spot of spots) {
         dayData.spots[spot.id] = [];
-        
-        // Determine which Open-Meteo coordinate index to use for this spot
         const coordIdx = regionIndices[spot.region];
         const spotHourlyMarine = Array.isArray(marineRes) ? marineRes[coordIdx].hourly : marineRes.hourly;
         const spotHourlyWeather = Array.isArray(weatherRes) ? weatherRes[coordIdx].hourly : weatherRes.hourly;
 
         for (const target of targetHours) {
-          // Find the index matching this date and hour
           const timestamp = `${dateStr}T${target.hourStr}`;
           const timeIdx = times.indexOf(timestamp);
           
           if (timeIdx === -1) continue;
 
-          // Retrieve physical variables
           const deepwaterHeight = spotHourlyMarine.swell_wave_height[timeIdx];
           const period = spotHourlyMarine.swell_wave_period[timeIdx];
           const direction = spotHourlyMarine.swell_wave_direction[timeIdx];
           const windSpeed = spotHourlyWeather.wind_speed_10m[timeIdx];
           const windDir = spotHourlyWeather.wind_direction_10m[timeIdx];
 
-          // Compute surf metrics
           const waveMetrics = calculateSpotWaveHeight(spot, deepwaterHeight, period, direction);
           const windQuality = calculateWindQuality(spot, windSpeed, windDir);
 
-          // Get tide height at this general hour
-          // We can find the closest predicted tide height for simplicity or show the tide peak summary
           dayData.spots[spot.id].push({
             time: target.label,
             timeStr: target.hourStr,
@@ -177,7 +176,7 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
       daysData.push(dayData);
     }
 
-    // 5. Structure data summary to send to LLM (keep it compact)
+    // 5. Package summary for LLM
     const dataSummaryForLLM = daysData.map(day => ({
       date: day.date,
       dayName: day.dayName,
@@ -197,11 +196,11 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
       }, {})
     }));
 
-    // 6. Generate DeepSeek LLM Narrative Predictions
-    console.log("Requesting surf analysis from DeepSeek v4 Flash...");
+    // 6. Query DeepSeek
+    console.log("Generating surf analysis report using DeepSeek v4 Flash...");
     const llmForecast = await generateLLMForecast(dataSummaryForLLM);
 
-    // 7. Consolidate and cache final forecast
+    // 7. Assemble final payload
     const finalForecast = {
       updatedAt: new Date().toISOString(),
       spotsList: spots,
@@ -209,17 +208,27 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
       llmForecast
     };
 
-    await cacheRef.set({
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      forecast: finalForecast
-    });
+    // 8. Cache locally in memory
+    memoryCache = finalForecast;
+    memoryCacheTime = Date.now();
 
-    console.log("Forecast successfully compiled and cached in Firestore.");
+    // 9. Try writing to Firestore Cache
+    try {
+      const cacheRef = db.collection("forecasts").doc("oahu");
+      await cacheRef.set({
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        forecast: finalForecast
+      });
+      console.log("Surf forecast successfully cached in Firestore.");
+    } catch (firestoreError) {
+      console.warn("Firestore cache write failed (database may not be initialized). Cached in-memory only:", firestoreError.message);
+    }
+
     res.setHeader("Cache-Control", "public, max-age=10800");
     return res.status(200).json(finalForecast);
 
   } catch (error) {
-    console.error("Forecast function error:", error);
+    console.error("Forecast compile error:", error);
     return res.status(500).json({
       error: "Internal Server Error",
       message: error.message
