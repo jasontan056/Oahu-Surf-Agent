@@ -258,33 +258,32 @@ export const forecast = onRequest({
       daysData.push(dayData);
     }
 
-    // 5. Package summary for LLM
-    const dataSummaryForLLM = daysData.map(day => ({
-      date: day.date,
-      dayName: day.dayName,
-      spots: Object.keys(day.spots).reduce((acc, spotId) => {
-        const spotDetails = spots.find(s => s.id === spotId);
-        acc[spotId] = {
-          name: spotDetails.name,
-          region: spotDetails.region,
-          type: spotDetails.type,
-          difficulty: spotDetails.difficulty,
-          description: spotDetails.description,
-          optimalSwell: spotDetails.optimalSwell,
-          optimalWind: spotDetails.optimalWind,
-          optimalTide: spotDetails.optimalTide,
-          forecast: day.spots[spotId].map(f => ({
-            time: f.time,
-            surf: `${f.hawaiianHeight}ft Hawaiian (${f.faceHeight}ft face)`,
-            wind: `${f.windSpeed}kts from ${f.windDir}° (${f.windQuality})`,
-            swell: `${f.swellHeight}ft @ ${f.swellPeriod}s from ${f.swellDir}°`,
-            rating: `${f.spotRating} (score: ${f.spotRatingScore}/100)`,
-            tideStage: f.tideStage
-          }))
+    // 5. Package summary for LLM (highly compact to prevent token limit truncation)
+    const dataSummaryForLLM = {
+      spots: spots.reduce((acc, spot) => {
+        const forecastStrings = daysData.map(day => {
+          const spotForecasts = day.spots[spot.id] || [];
+          const slotsText = spotForecasts.map(f => {
+            if (f.faceHeight === 0) return `${f.time}: Flat`;
+            return `${f.time}: ${f.hawaiianHeight}ft Hawaiian (${f.faceHeight}ft face), Wind: ${f.windSpeed}kts (${f.windQuality}), Tide: ${f.tideStage}, Score: ${f.spotRatingScore}`;
+          }).join(" | ");
+          return `${day.dayName} (${day.date}): ${slotsText}`;
+        });
+
+        acc[spot.id] = {
+          name: spot.name,
+          region: spot.region,
+          type: spot.type,
+          difficulty: spot.difficulty,
+          description: spot.description,
+          optimalSwell: spot.optimalSwell,
+          optimalWind: spot.optimalWind,
+          optimalTide: spot.optimalTide,
+          forecast: forecastStrings
         };
         return acc;
       }, {})
-    }));
+    };
 
     // 6. Query narrative generation service
     console.log("Generating surf analysis report...");
