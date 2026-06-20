@@ -67,7 +67,7 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
     const lats = "21.6640,21.2840,21.4750,21.2850";
     const lons = "-158.0530,-157.8420,-158.2250,-157.6720";
     
-    const marineUrl = `https://api.open-meteo.com/v1/marine?latitude=${lats}&longitude=${lons}&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction&timezone=Pacific%2FHonolulu`;
+    const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lats}&longitude=${lons}&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction&timezone=Pacific%2FHonolulu`;
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&timezone=Pacific%2FHonolulu`;
     
     const tideHNLUrl = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=today&product=predictions&datum=mllw&format=json&units=english&time_zone=lst_ldt&station=1612340&range=168&interval=hilo`;
