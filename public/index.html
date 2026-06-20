@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oahu Surf Forecasting Agent</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Background Blur Elements -->
+  <div class="bg-blur bg-blur-1"></div>
+  <div class="bg-blur bg-blur-2"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo-icon">🌊</div>
+        <div>
+          <h1 class="title">Oahu Surf Agent</h1>
+          <p class="subtitle">Physics-Engine Surf Forecasts & DeepSeek AI Narratives</p>
+        </div>
+      </div>
+      <div class="meta-status">
+        <div class="status-indicator"></div>
+        <span id="last-updated">Fetching latest swell data...</span>
+        <button id="refresh-btn" class="refresh-btn" title="Force Refresh Forecast">
+          <svg class="refresh-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Swell Outlook -->
+    <section class="card outlook-card animate-fade-in" id="outlook-section">
+      <div class="card-header">
+        <span class="card-badge">LLM Swell Outlook</span>
+        <h2>Island-Wide Swell Report</h2>
+      </div>
+      <p class="outlook-text" id="outlook-text">Loading Oahu swell report and predictions...</p>
+    </section>
+
+    <!-- Navigation & Filters -->
+    <nav class="region-nav animate-fade-in">
+      <button class="nav-tab active" data-region="all">All Shores</button>
+      <button class="nav-tab" data-region="North Shore">North Shore</button>
+      <button class="nav-tab" data-region="South Shore">South Shore</button>
+      <button class="nav-tab" data-region="West Side">West Side</button>
+      <button class="nav-tab" data-region="East Side">East Side</button>
+    </nav>
+
+    <!-- Regional Summary Text -->
+    <div class="region-summary-box animate-fade-in" id="region-summary-container" style="display: none;">
+      <h3 id="region-summary-title">North Shore Outlook</h3>
+      <p id="region-summary-text"></p>
+    </div>
+
+    <!-- Main Layout Grid -->
+    <div class="main-layout">
+      <!-- Left Side: Surf Spots Grid -->
+      <main class="spots-section">
+        <div class="spots-grid" id="spots-grid">
+          <!-- Dynamically populated spot cards -->
+        </div>
+      </main>
+
+      <!-- Right Side: Sidebar Tides -->
+      <aside class="sidebar animate-fade-in">
+        <!-- Tide Predictions Card -->
+        <div class="card tide-card">
+          <div class="card-header">
+            <h2>Tide Predictions</h2>
+          </div>
+          <div class="tide-station-tabs">
+            <button class="tide-tab active" data-station="hnl">Honolulu (S/W/N)</button>
+            <button class="tide-tab" data-station="mok">Mokuoloe (E)</button>
+          </div>
+          <div class="tide-predictions-list" id="tide-list">
+            <!-- Dynamically populated tide heights -->
+          </div>
+        </div>
+
+        <!-- System/About Card -->
+        <div class="card about-card">
+          <h3>Calculations Model</h3>
+          <p class="about-text">
+            Wave sizes are calculated using <strong>Linear Shoaling Theory</strong> scaled by swell period and angular alignment:
+          </p>
+          <div class="equation-box">
+            $$H_{breaking} = H_{swell} \times \left(\frac{T}{10}\right)^{1.2} \times \cos(\Delta\theta) \times M_{spot}$$
+          </div>
+          <p class="about-text" style="margin-top: 12px;">
+            Predictions use <strong>DeepSeek v4 Flash</strong>, evaluating swell windows, refraction, and local wind quality.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script src="app.js"></script>
+</body>
+</html>
