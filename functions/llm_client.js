@@ -17,15 +17,15 @@ export async function generateLLMForecast(dataSummary) {
 
   const prompt = `
 You are an expert surf forecaster for the island of Oahu, Hawaii.
-You are given a JSON object containing raw meteorological data and calculated wave heights (face height and traditional Hawaiian scale) and wind quality for 19 spots across 4 regions of Oahu (North Shore, South Shore, West Side, East Side) over the next 3 days.
+You are given a JSON object containing raw meteorological data and calculated wave heights (face height and traditional Hawaiian scale) and wind quality for 19 spots across 4 regions of Oahu (North Shore, South Shore, West Side, East Side) over the next 7 days.
 
 Here is the calculated surf forecast data:
 ${JSON.stringify(dataSummary, null, 2)}
 
-Please write a highly detailed, professional surf forecast report. The report must be return in JSON format with the following keys:
-1. "outlook": A paragraph summarizing the island-wide swell outlook (which shores are active, swell sources, timing of peaks).
-2. "regions": An object where keys are the 4 regions ("North Shore", "South Shore", "West Side", "East Side") and values are paragraphs describing the regional outlook, which spots are favored, wind details, and best times to surf.
-3. "spots": An object where keys are the spot IDs (e.g., "pipeline", "bowls", "makaha", "sandybeach") and values are 2-3 sentences explaining exactly how the swell and wind will interact at that specific spot (e.g. "Pipeline will see the peak of the NW groundswell on Day 1 morning with clean offshore winds, providing heavy, hollow barrels. Day 2 will see declining swell and rising onshore winds making it choppy.").
+Please write a highly detailed, professional surf forecast report. The report must be returned in JSON format with the following keys:
+1. "outlook": A paragraph summarizing the island-wide swell outlook for the next 7 days (which shores are active, swell sources, timing of peaks, and overall recommendations).
+2. "regions": An object where keys are the 4 regions ("North Shore", "South Shore", "West Side", "East Side") and values are paragraphs describing the regional outlook for the week, which spots are favored, wind patterns, and general recommendations for the best days/times to surf.
+3. "spots": An object where keys are the spot IDs (e.g., "pipeline", "bowls", "makaha", "sandybeach") and values are 3-4 sentences explaining exactly how the swell and wind will interact at that specific spot over the 7 days, and specifically recommend the absolute best day(s) and time(s) of day to surf this spot (e.g., "Best time: Day 1 Morning during the swell peak and offshore winds").
 
 Your tone should be authoritative, local, and focused on wave quality, swell angle, wind impact, tide timing, and safety. Do not use placeholders. Return ONLY a valid JSON object matching the requested schema.
 `;

@@ -70,8 +70,8 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
     const marineUrl = `https://api.open-meteo.com/v1/marine?latitude=${lats}&longitude=${lons}&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction&timezone=Pacific%2FHonolulu`;
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&timezone=Pacific%2FHonolulu`;
     
-    const tideHNLUrl = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=today&product=predictions&datum=mllw&format=json&units=english&time_zone=lst_ldt&station=1612340&range=72&interval=hilo`;
-    const tideMOKUrl = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=today&product=predictions&datum=mllw&format=json&units=english&time_zone=lst_ldt&station=1612480&range=72&interval=hilo`;
+    const tideHNLUrl = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=today&product=predictions&datum=mllw&format=json&units=english&time_zone=lst_ldt&station=1612340&range=168&interval=hilo`;
+    const tideMOKUrl = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=today&product=predictions&datum=mllw&format=json&units=english&time_zone=lst_ldt&station=1612480&range=168&interval=hilo`;
 
     const [marineRes, weatherRes, tideHNLRes, tideMOKRes] = await Promise.all([
       fetch(marineUrl).then(r => r.json()),
@@ -116,7 +116,7 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
       throw new Error("Invalid hourly timestamp array returned by meteorological API.");
     }
 
-    const uniqueDates = [...new Set(times.map(t => t.split("T")[0]))].slice(0, 3);
+    const uniqueDates = [...new Set(times.map(t => t.split("T")[0]))].slice(0, 7);
     const daysData = [];
 
     for (const dateStr of uniqueDates) {
