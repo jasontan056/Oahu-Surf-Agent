@@ -185,6 +185,34 @@ export const spots = [
     difficulty: "Beginner",
     description: "A fun, soft longboard wave on the Ewa plain. Ideal for beginners and families."
   },
+  {
+    id: "secrets",
+    name: "Secrets (Aina Haina)",
+    region: "South Shore",
+    latitude: 21.2720,
+    longitude: -157.7560,
+    swellWindow: { min: 160, max: 220 },
+    optimalSwell: 190,
+    optimalWind: 45, // NE (offshore-ish)
+    magnification: 1.1,
+    type: "Reefbreak",
+    difficulty: "Advanced",
+    description: "A fast, hollow reef break in Aina Haina. It works on solid south swells but can get very shallow and sharp at low tide."
+  },
+  {
+    id: "toes",
+    name: "Toes (Aina Haina)",
+    region: "South Shore",
+    latitude: 21.2740,
+    longitude: -157.7540,
+    swellWindow: { min: 160, max: 220 },
+    optimalSwell: 190,
+    optimalWind: 45, // NE (offshore-ish)
+    magnification: 0.8,
+    type: "Reefbreak",
+    difficulty: "Intermediate",
+    description: "A long, gentle wave popular for longboarding in Aina Haina. It has a soft, peeling profile and breaks over a deep reef."
+  },
 
   // West Side
   {
