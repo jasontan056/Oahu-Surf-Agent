@@ -44,7 +44,7 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
           
           if (ageMs < THREE_HOURS_MS) {
             console.log("Serving surf forecast from Firestore cache");
-            res.setHeader("Cache-Control", "public, max-age=10800");
+            res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
             return res.status(200).json(cacheData.forecast);
           }
         }
@@ -54,7 +54,7 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
         const ageMs = Date.now() - memoryCacheTime;
         if (memoryCache && ageMs < THREE_HOURS_MS) {
           console.log("Serving surf forecast from In-Memory cache");
-          res.setHeader("Cache-Control", "public, max-age=10800");
+          res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
           return res.status(200).json(memoryCache);
         }
       }
@@ -241,7 +241,7 @@ export const forecast = onRequest({ cors: true, timeoutSeconds: 120 }, async (re
       console.warn("Firestore cache write failed (database may not be initialized). Cached in-memory only:", firestoreError.message);
     }
 
-    res.setHeader("Cache-Control", "public, max-age=10800");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     return res.status(200).json(finalForecast);
 
   } catch (error) {
