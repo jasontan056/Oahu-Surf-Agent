@@ -247,7 +247,7 @@ function renderSpots() {
       </div>
 
       <button class="details-toggle" data-spot="${spot.id}">
-        <span>Show 3-Day Details</span>
+        <span>Show 7-Day Details</span>
         <svg class="toggle-arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
         </svg>
@@ -255,7 +255,7 @@ function renderSpots() {
 
       <div class="spot-details-panel" id="panel-${spot.id}">
         <!-- Populated day-by-day table -->
-        ${renderThreeDayDetails(spot.id)}
+        ${renderSevenDayDetails(spot.id)}
       </div>
     `;
 
@@ -264,15 +264,15 @@ function renderSpots() {
     toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const isExpanded = card.classList.toggle('expanded');
-      toggleBtn.querySelector('span').textContent = isExpanded ? 'Hide 3-Day Details' : 'Show 3-Day Details';
+      toggleBtn.querySelector('span').textContent = isExpanded ? 'Hide 7-Day Details' : 'Show 7-Day Details';
     });
 
     spotsGridEl.appendChild(card);
   });
 }
 
-// Render the 3-day morning/mid-day/afternoon tables inside card
-function renderThreeDayDetails(spotId) {
+// Render the 7-day morning/mid-day/afternoon tables inside card
+function renderSevenDayDetails(spotId) {
   let html = '';
   
   forecastData.days.forEach(day => {
