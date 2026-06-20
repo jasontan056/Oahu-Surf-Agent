@@ -4,6 +4,7 @@
 let forecastData = null;
 let activeRegion = 'all';
 let activeTideStation = 'hnl'; // 'hnl' or 'mok'
+let searchQuery = '';
 
 // DOM Elements
 const lastUpdatedEl = document.getElementById('last-updated');
@@ -49,6 +50,15 @@ function setupEventListeners() {
       renderTides();
     });
   });
+
+  // Search Input
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.toLowerCase().trim();
+      renderSpots();
+    });
+  }
 }
 
 // Fetch Forecast Data from API
@@ -167,12 +177,24 @@ function renderSpots() {
   spotsGridEl.innerHTML = '';
 
   // Filter spots by region
-  const filteredSpots = activeRegion === 'all' 
-    ? forecastData.spotsList 
-    : forecastData.spotsList.filter(s => s.region === activeRegion);
+  // Filter spots by region and search query
+  let filteredSpots = forecastData.spotsList;
+  
+  if (activeRegion !== 'all') {
+    filteredSpots = filteredSpots.filter(s => s.region === activeRegion);
+  }
+  
+  if (searchQuery) {
+    filteredSpots = filteredSpots.filter(s => 
+      s.name.toLowerCase().includes(searchQuery) ||
+      s.region.toLowerCase().includes(searchQuery) ||
+      s.type.toLowerCase().includes(searchQuery) ||
+      s.difficulty.toLowerCase().includes(searchQuery)
+    );
+  }
 
   if (filteredSpots.length === 0) {
-    spotsGridEl.innerHTML = '<div class="loading-overlay"><p>No spots found in this region.</p></div>';
+    spotsGridEl.innerHTML = '<div class="loading-overlay"><p>No spots found matching filters.</p></div>';
     return;
   }
 
@@ -202,10 +224,10 @@ function renderSpots() {
       });
     }
 
-    // Determine the overall wave height label
+    // Determine the overall wave height label (Defaulting to Face Height)
     const waveHeightStr = peakFace === 0 
       ? "Flat" 
-      : `${peakHawaiian}-${Math.max(peakHawaiian, Math.round(peakFace * 0.7))} ft`;
+      : `${Math.round(peakFace * 0.7)}-${peakFace} ft`;
 
     // AI Prediction text for this spot
     const aiSpotText = forecastData.llmForecast?.spots?.[spot.id] || "No spot-specific predictions generated.";
@@ -230,9 +252,9 @@ function renderSpots() {
 
       <div class="spot-overview">
         <div class="overview-box">
-          <div class="overview-label">Hawaiian Size</div>
+          <div class="overview-label">Face Height</div>
           <div class="overview-val">${waveHeightStr}</div>
-          <div class="overview-val-sub">${peakFace}ft face peak</div>
+          <div class="overview-val-sub">${peakHawaiian}ft Hawaiian peak</div>
         </div>
         <div class="overview-box">
           <div class="overview-label">Wind Quality</div>
