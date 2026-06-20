@@ -85,7 +85,10 @@ function setupEventListeners() {
 async function fetchForecast(force = false) {
   showLoading();
   try {
-    const url = '/api/forecast';
+    let url = '/api/forecast';
+    if (force) {
+      url += '?force=true&forceToken=sk-oahu-surf-agent';
+    }
     // Use no-cache options if forced, bypassing local browser cache but not backend database caches
     const options = force ? { cache: 'no-cache' } : {};
     
