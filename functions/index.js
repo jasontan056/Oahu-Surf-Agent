@@ -1,4 +1,5 @@
 import { onRequest } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret } from "firebase-functions/params";
 import admin from "firebase-admin";
 import { spots } from "./config.js";
@@ -326,6 +327,8 @@ export const forecast = onRequest(
         }
       }
 
+// Core forecast generation — reusable by both HTTP endpoint and scheduled refresh
+async function buildAndCacheForecast() {
       console.log("Fetching fresh meteorological data from APIs...");
 
       // 2. Fetch Meteorological Data with multi-swell partitions & wind gusts
@@ -683,6 +686,11 @@ export const forecast = onRequest(
         );
       }
 
+      return finalForecast;
+  } // end buildAndCacheForecast
+
+      const finalForecast = await buildAndCacheForecast();
+
       res.setHeader(
         "Cache-Control",
         "public, max-age=60, s-maxage=10800, stale-while-revalidate=600"
@@ -937,3 +945,41 @@ function getWindCardinal(degrees) {
   const val = Math.floor(degrees / 22.5 + 0.5);
   return cardinals[val % 16];
 }
+
+// ---------------------------------------------------------------------------
+// Scheduled forecast refresh — runs every 6 hours to keep cache warm
+// ---------------------------------------------------------------------------
+export const scheduledForecastRefresh = onSchedule(
+  {
+    schedule: "0 */6 * * *",
+    timeZone: "Pacific/Honolulu",
+    timeoutSeconds: 120,
+    secrets: [deepseekApiSecret],
+  },
+  async (event) => {
+    console.log("Scheduled forecast refresh triggered at", new Date().toISOString());
+
+    try {
+      // Check if cache is still fresh — skip if regenerated recently by a user
+      try {
+        const cacheRef = db.collection("forecasts").doc("oahu");
+        const cacheDoc = await cacheRef.get();
+        if (cacheDoc.exists) {
+          const ageMs = Date.now() - cacheDoc.data().updatedAt.toDate().getTime();
+          if (ageMs < CACHE_TTL_MS) {
+            console.log(`Cache still fresh (${Math.round(ageMs / 60000)}m old). Skipping refresh.`);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not check Firestore cache for scheduled job:", e.message);
+      }
+
+      console.log("Cache expired. Generating fresh forecast...");
+      const forecast = await buildAndCacheForecast();
+      console.log(`Scheduled refresh complete — forecast generated with ${forecast.days.length} days of data.`);
+    } catch (error) {
+      console.error("Scheduled forecast refresh failed:", error);
+    }
+  }
+);
