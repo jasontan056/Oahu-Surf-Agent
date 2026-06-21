@@ -23,6 +23,10 @@
     ],
     "rewrites": [
       {
+        "source": "/api/forecast-explainer",
+        "function": "forecastExplainer"
+      },
+      {
         "source": "/api/feedback",
         "function": "feedback"
       },

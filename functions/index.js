@@ -12,6 +12,122 @@ import {
 } from "./forecaster.js";
 import { generateNarrativeForecast } from "./llm_client.js";
 
+// Helper to build the explainer prompt and call DeepSeek
+async function generateExplainer(analysisData) {
+  const apiKey = process.env.DEEPSEEK_API_SECRET || process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  const explainerPrompt = `You are an expert surf forecaster and physics educator explaining exactly how a surf forecast is computed step by step.
+
+You are given a JSON object containing raw meteorological measurements, surf spot configurations, and detailed intermediate calculations for today's Oahu surf forecast. Your job is to write a clear, educational step-by-step explanation of the entire forecasting pipeline in plain English.
+
+DATA:
+${JSON.stringify(analysisData, null, 2)}
+
+Write a step-by-step guide. Return ONLY a valid JSON object with this exact schema:
+
+{
+  "overview": "A 2-3 sentence high-level summary of what the forecaster found today.",
+  "steps": [
+    {
+      "stepNumber": 1,
+      "title": "Step 1: Raw Data Collection",
+      "content": "Explain which APIs we query, what data they return, and show the key raw numbers (swell heights, periods, directions, wind, tide predictions) for today. Mention the 4 coordinate points representing each region."
+    },
+    {
+      "stepNumber": 2,
+      "title": "Step 2: Swell Partition Breakdown",
+      "content": "Explain how the primary swell, secondary swell, and wind swell are separated. Show which swell components are active today for each region. Mention that each component carries different energy (H\u00b2\u00d7T) and travels from different directions."
+    },
+    {
+      "stepNumber": 3,
+      "title": "Step 3: Per-Spot Physics Pipeline",
+      "content": "Walk through the 5 physics checks applied to each swell component at each spot: (1) Swell Window check with 15\u00b0 soft taper, (2) Alignment cosine decay from optimal angle, (3) Island shadowing for Molokai/Lanai/Kaena Point, (4) Bathymetry-aware shoaling based on bottom profile (steep-reef vs gradual-reef vs sandbar), (5) Spot magnification factor. Use specific numbers from Pipeline or Bowls as a concrete example."
+    },
+    {
+      "stepNumber": 4,
+      "title": "Step 4: Multi-Swell Superposition",
+      "content": "Explain how the individual swell component contributions are combined using energy-based superposition (sqrt of sum of squares). Show an example calculation with real numbers from today's data."
+    },
+    {
+      "stepNumber": 5,
+      "title": "Step 5: Wind Analysis",
+      "content": "Explain wind quality classification (glassy/clean/fair/choppy/blown-out), how wind direction is compared to each spot's optimal wind, and how terrain wind shadowing reduces wind speed for sheltered regions like the West Side (Waianae range blocking trades). Include gust penalties."
+    },
+    {
+      "stepNumber": 6,
+      "title": "Step 6: Tide Interpolation",
+      "content": "Explain how we take NOAA's high/low tide predictions and linearly interpolate to get the exact tide height (in feet) at each forecast hour, plus determine whether the tide is rising or falling. Show why this matters\u2014spots like Bowls need draining low tides for barrel shape, while Sandy Beach needs high tide for its sandbar."
+    },
+    {
+      "stepNumber": 7,
+      "title": "Step 7: Composite Quality Scoring",
+      "content": "Break down the 5 sub-scores that combine to the final 0-100 quality rating: Size Score (up to 35, bell-curved around spot's difficulty), Wind Score (up to 30), Period Score (up to 15, bell-curved around spot's optimal period range), Alignment Score (up to 10), Tide Score (up to 10, bell-curved around optimal tide height). Show actual sub-scores for one spot and explain the final rating label (e.g., Fair, Good, Epic)."
+    },
+    {
+      "stepNumber": 8,
+      "title": "Step 8: Regional Synthesis & AI Narrative",
+      "content": "Explain how all spot calculations feed into the island-wide outlook, regional summaries, and per-spot AI narratives. Mention that forecast confidence is High for days 0-1, Moderate for days 2-3, and Low for days 4-6."
+    }
+  ],
+  "regionalBreakdowns": {
+    "North Shore": "Summarize what's happening on the North Shore today based on the data.",
+    "South Shore": "Summarize what's happening on the South Shore today.",
+    "West Side": "Summarize what's happening on the West Side today.",
+    "East Side": "Summarize what's happening on the East Side today."
+  },
+  "spotWalkthroughs": {
+    "pipeline": "A detailed walkthrough of Pipeline's calculations with actual numbers from today.",
+    "bowls": "A detailed walkthrough of Ala Moana Bowls' calculations with actual numbers from today.",
+    "makaha": "A detailed walkthrough of Makaha's calculations with actual numbers.",
+    "sandybeach": "A detailed walkthrough of Sandy Beach's calculations with actual numbers."
+  }
+}
+
+IMPORTANT RULES:
+- Use the actual numbers from the DATA provided. Do not invent numbers.
+- Write in an engaging, educational tone suitable for surfers who want to understand the science.
+- Reference specific swell periods, tide heights, wind speeds, and score components.
+- Keep each step's content to 3-6 sentences\u2014concise but thorough.
+- Each regional breakdown should be 2-3 sentences.
+- Each spot walkthrough should be 4-6 sentences tracing the full physics pipeline for that spot.
+- Output ONLY valid JSON. No markdown, no code fences.`;
+
+  try {
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-v4-flash",
+        messages: [
+          { role: "system", content: "You output valid JSON only." },
+          { role: "user", content: explainerPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.5,
+        max_tokens: 8192,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`DeepSeek explainer error (${response.status}):`, errText);
+      return null;
+    }
+
+    const result = await response.json();
+    return JSON.parse(result.choices[0].message.content);
+  } catch (error) {
+    console.error("Explainer generation failed:", error);
+    return null;
+  }
+}
+
 // Declare secret for DeepSeek API Key
 const deepseekApiSecret = defineSecret("DEEPSEEK_API_SECRET");
 
@@ -564,3 +680,195 @@ export const forecast = onRequest(
     }
   }
 );
+
+// ---------------------------------------------------------------------------
+// Forecast Explainer endpoint — step-by-step walkthrough of today's forecast
+// ---------------------------------------------------------------------------
+export const forecastExplainer = onRequest(
+  { cors: false, timeoutSeconds: 120, secrets: [deepseekApiSecret] },
+  async (req, res) => {
+    try {
+      res.setHeader("Vary", "Origin");
+      handleCors(req, res);
+
+      if (req.method === "OPTIONS") {
+        return res.status(204).send("");
+      }
+
+      // 1. Load cached forecast
+      let forecast = null;
+      try {
+        const cacheRef = db.collection("forecasts").doc("oahu");
+        const cacheDoc = await cacheRef.get();
+        if (cacheDoc.exists) {
+          forecast = cacheDoc.data().forecast;
+        }
+      } catch (e) {
+        console.warn("Firestore read failed for explainer, trying memory:", e.message);
+      }
+      if (!forecast) {
+        forecast = memoryCache;
+      }
+      if (!forecast || !forecast.days || forecast.days.length === 0) {
+        return res.status(503).json({
+          error: "No forecast data available yet. Please try again after the forecast is generated.",
+        });
+      }
+
+      // 2. Extract today's raw analysis data for representative spots
+      const todayData = forecast.days[0];
+      const representativeSpots = ["pipeline", "bowls", "makaha", "sandybeach"];
+
+      // Build spot config summaries
+      const spotConfigs = {};
+      for (const spot of forecast.spotsList) {
+        if (representativeSpots.includes(spot.id)) {
+          spotConfigs[spot.id] = {
+            name: spot.name,
+            region: spot.region,
+            type: spot.type,
+            difficulty: spot.difficulty,
+            bottomProfile: spot.bottomProfile,
+            swellWindow: spot.swellWindow,
+            optimalSwell: spot.optimalSwell,
+            optimalWind: spot.optimalWind,
+            optimalWindCardinal: getWindCardinal(spot.optimalWind),
+            magnification: spot.magnification,
+            optimalTideHeight: spot.optimalTideHeight,
+            tideSensitivity: spot.tideSensitivity,
+            prefersRising: spot.prefersRising,
+            optimalPeriodMin: spot.optimalPeriodMin,
+            optimalPeriodMax: spot.optimalPeriodMax,
+            maxHoldingSize: spot.maxHoldingSize,
+            description: spot.description,
+          };
+        }
+      }
+
+      // Build today's calculated data per spot
+      const spotCalculations = {};
+      for (const spotId of representativeSpots) {
+        const forecasts = todayData.spots[spotId] || [];
+        if (forecasts.length === 0) continue;
+
+        const bestSlot = forecasts.reduce((best, f) =>
+          (f.spotRatingScore || 0) > (best.spotRatingScore || 0) ? f : best
+        , forecasts[0]);
+
+        spotCalculations[spotId] = {
+          timeSlots: forecasts.map((f) => ({
+            time: f.time,
+            faceHeight: f.faceHeight,
+            hawaiianHeight: f.hawaiianHeight,
+            swellComponents: f.swellComponents || [],
+            multiSwell: f.multiSwell || "N/A",
+            swellHeight: f.swellHeight,
+            swellPeriod: f.swellPeriod,
+            swellDir: f.swellDir,
+            windSpeed: f.windSpeed,
+            windDir: f.windDir,
+            windGusts: f.windGusts || 0,
+            windQuality: f.windQuality,
+            windClass: f.windClass,
+            tideHeight: f.tideHeight,
+            tideTrend: f.tideTrend,
+            tideStage: f.tideStage,
+            spotRatingScore: f.spotRatingScore,
+            spotRating: f.spotRating,
+            spotRatingClass: f.spotRatingClass,
+          })),
+          bestSlot: {
+            time: bestSlot.time,
+            faceHeight: bestSlot.faceHeight,
+            spotRatingScore: bestSlot.spotRatingScore,
+            spotRating: bestSlot.spotRating,
+          },
+        };
+      }
+
+      // Build raw data summary for the 4 regions
+      const regionRawData = {};
+      const regionCoords = {
+        "North Shore": { lat: 21.664, lon: -158.053 },
+        "South Shore": { lat: 21.284, lon: -157.842 },
+        "West Side": { lat: 21.475, lon: -158.225 },
+        "East Side": { lat: 21.285, lon: -157.672 },
+      };
+
+      for (const [region, coords] of Object.entries(regionCoords)) {
+        // Find a spot from this region to get its swell data
+        const regionSpot = forecast.spotsList.find((s) => s.region === region);
+        if (!regionSpot) continue;
+        const regionForecasts = todayData.spots[regionSpot.id] || [];
+        if (regionForecasts.length === 0) continue;
+
+        const f = regionForecasts[0];
+        regionRawData[region] = {
+          coordinates: coords,
+          swellComponents: f.swellComponents || [],
+          multiSwell: f.multiSwell || "N/A",
+          windSpeed: f.windSpeed,
+          windDir: f.windDir,
+          windGusts: f.windGusts || 0,
+          tideHeight: f.tideHeight,
+          tideTrend: f.tideTrend,
+        };
+      }
+
+      // Tide data for today
+      const todayTides = {
+        hnl: todayData.tides?.hnl || [],
+        mok: todayData.tides?.mok || [],
+      };
+
+      const analysisData = {
+        forecastDate: todayData.date,
+        forecastDayName: todayData.dayName,
+        confidence: todayData.confidence,
+        regionRawData,
+        tidePredictions: todayTides,
+        spotConfigs,
+        spotCalculations,
+      };
+
+      // 3. Generate AI explainer narrative
+      console.log("Generating forecast explainer narrative...");
+      const aiExplainer = await generateExplainer(analysisData);
+
+      // 4. Return both raw data and AI narrative
+      res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
+      return res.status(200).json({
+        updatedAt: forecast.updatedAt,
+        analysisData,
+        aiExplainer: aiExplainer || {
+          overview: "AI explainer unavailable (API key not configured or service error). See raw analysis data below.",
+          steps: [
+            {
+              stepNumber: 1,
+              title: "Raw Data",
+              content: "The raw meteorological data and per-spot calculations are shown below. The AI narrative generator is currently unavailable.",
+            },
+          ],
+          regionalBreakdowns: {},
+          spotWalkthroughs: {},
+        },
+      });
+    } catch (error) {
+      console.error("Explainer error:", error);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: error.message,
+      });
+    }
+  }
+);
+
+// Helper: wind direction to cardinal
+function getWindCardinal(degrees) {
+  const cardinals = [
+    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW",
+  ];
+  const val = Math.floor(degrees / 22.5 + 0.5);
+  return cardinals[val % 16];
+}

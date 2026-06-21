@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How the Forecast Works — Oahu Surf Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .explainer-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--accent-cyan);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+      transition: opacity 0.2s;
+    }
+    .back-link:hover { opacity: 0.8; }
+
+    .explainer-hero {
+      margin-bottom: 2.5rem;
+    }
+    .explainer-hero h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+    .explainer-hero .hero-subtitle {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+    }
+
+    .overview-card {
+      margin-bottom: 2rem;
+    }
+    .overview-card .overview-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-bottom: 0.75rem;
+    }
+    .overview-card .overview-body {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    .step-card {
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    .step-card .step-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .step-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .step-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      padding-top: 0.5rem;
+    }
+    .step-content {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      padding-left: 3.25rem;
+    }
+
+    .section-divider {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      margin: 2.5rem 0;
+    }
+
+    .section-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent-purple);
+      margin-bottom: 1.25rem;
+    }
+
+    .region-card {
+      margin-bottom: 1rem;
+    }
+    .region-card .region-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-bottom: 0.4rem;
+    }
+    .region-card .region-body {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .spot-walkthrough {
+      margin-bottom: 1.25rem;
+    }
+    .spot-walkthrough .spot-name-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.3rem;
+    }
+    .spot-walkthrough .spot-walk-body {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    /* Raw data tables */
+    .raw-data-section {
+      margin-top: 2rem;
+    }
+    .raw-data-toggle {
+      background: none;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      text-align: center;
+    }
+    .raw-data-toggle:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+    }
+    .raw-data-panel {
+      display: none;
+      margin-top: 1rem;
+    }
+    .raw-data-panel.visible { display: block; }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      margin-bottom: 1.5rem;
+    }
+    .data-table th {
+      text-align: left;
+      color: var(--accent-cyan);
+      font-weight: 600;
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .data-table td {
+      padding: 0.35rem 0.6rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+    }
+    .data-table .highlight {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .data-table .score-cell {
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    .loading-state {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+    .loading-state .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.05);
+      border-top-color: var(--accent-cyan);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem auto;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-blur bg-blur-1"></div>
+  <div class="bg-blur bg-blur-2"></div>
+
+  <div class="container explainer-container">
+    <a href="index.html" class="back-link">← Back to Forecast</a>
+
+    <div class="explainer-hero">
+      <h1>How the Forecast Works</h1>
+      <p class="hero-subtitle">A step-by-step walkthrough of the physics pipeline that generates your surf forecast, using today's actual data.</p>
+    </div>
+
+    <!-- AI Explainer Output -->
+    <div id="explainer-content">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p style="color: var(--text-secondary);">Analyzing today's forecast data and generating step-by-step explanation...</p>
+      </div>
+    </div>
+
+    <!-- Raw Data Section (toggle) -->
+    <div class="raw-data-section" id="raw-data-section" style="display:none;">
+      <button class="raw-data-toggle" id="raw-data-toggle">📊 Show Raw Calculation Data</button>
+      <div class="raw-data-panel" id="raw-data-panel"></div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let explainerData = null;
+
+    async function fetchExplainer() {
+      const content = document.getElementById('explainer-content');
+      content.innerHTML = `
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p style="color: var(--text-secondary);">Analyzing today's forecast data and generating step-by-step explanation...</p>
+        </div>
+      `;
+
+      try {
+        const resp = await fetch('/api/forecast-explainer');
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.error || `HTTP ${resp.status}`);
+        }
+        explainerData = await resp.json();
+        renderExplainer(explainerData);
+      } catch (err) {
+        content.innerHTML = `
+          <div class="card" style="text-align:center;padding:3rem;">
+            <p style="color:#ef4444;">Failed to load explainer: ${err.message}</p>
+            <button onclick="fetchExplainer()" style="margin-top:1rem;padding:0.5rem 1rem;background:var(--accent-blue);border:none;border-radius:6px;color:white;cursor:pointer;">Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    function renderExplainer(data) {
+      const content = document.getElementById('explainer-content');
+      const ai = data.aiExplainer;
+      const raw = data.analysisData;
+
+      let html = '';
+
+      // Overview
+      if (ai.overview) {
+        html += `
+          <div class="card overview-card">
+            <div class="overview-title">📋 Overview</div>
+            <div class="overview-body">${escapeHtml(ai.overview)}</div>
+            <div style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-muted);">
+              Forecast for ${raw.forecastDayName} (${raw.forecastDate}) · Confidence: <span class="confidence-badge confidence-${(raw.confidence || 'High').toLowerCase()}">${raw.confidence || 'High'}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      // Step-by-step walkthrough
+      if (ai.steps && ai.steps.length > 0) {
+        html += '<h2 style="font-size:1.4rem;font-weight:700;margin-bottom:1.25rem;margin-top:2rem;">📐 Step-by-Step Pipeline</h2>';
+        for (const step of ai.steps) {
+          html += `
+            <div class="card step-card">
+              <div class="step-header">
+                <div class="step-number">${step.stepNumber}</div>
+                <div class="step-title">${escapeHtml(step.title)}</div>
+              </div>
+              <div class="step-content">${escapeHtml(step.content)}</div>
+            </div>
+          `;
+        }
+      }
+
+      // Regional breakdowns
+      if (ai.regionalBreakdowns && Object.keys(ai.regionalBreakdowns).length > 0) {
+        html += '<hr class="section-divider">';
+        html += '<div class="section-title">🏝️ Regional Breakdowns</div>';
+        const regions = ['North Shore', 'South Shore', 'West Side', 'East Side'];
+        for (const region of regions) {
+          const text = ai.regionalBreakdowns[region];
+          if (!text) continue;
+          html += `
+            <div class="card region-card">
+              <div class="region-name">${region}</div>
+              <div class="region-body">${escapeHtml(text)}</div>
+            </div>
+          `;
+        }
+      }
+
+      // Spot walkthroughs
+      if (ai.spotWalkthroughs && Object.keys(ai.spotWalkthroughs).length > 0) {
+        html += '<hr class="section-divider">';
+        html += '<div class="section-title">🔍 Spot Walkthroughs</div>';
+        for (const [spotId, text] of Object.entries(ai.spotWalkthroughs)) {
+          if (!text) continue;
+          const cfg = raw.spotConfigs?.[spotId];
+          const name = cfg?.name || spotId;
+          const region = cfg?.region || '';
+          html += `
+            <div class="card spot-walkthrough">
+              <div class="spot-name-title">${escapeHtml(name)} <span style="font-size:0.75rem;color:var(--text-muted);">${escapeHtml(region)}</span></div>
+              <div class="spot-walk-body">${escapeHtml(text)}</div>
+            </div>
+          `;
+        }
+      }
+
+      content.innerHTML = html;
+
+      // Build raw data tables
+      buildRawDataTables(raw);
+      document.getElementById('raw-data-section').style.display = 'block';
+
+      // Raw data toggle
+      document.getElementById('raw-data-toggle').addEventListener('click', () => {
+        const panel = document.getElementById('raw-data-panel');
+        panel.classList.toggle('visible');
+        const btn = document.getElementById('raw-data-toggle');
+        btn.textContent = panel.classList.contains('visible')
+          ? '📊 Hide Raw Calculation Data'
+          : '📊 Show Raw Calculation Data';
+      });
+    }
+
+    function buildRawDataTables(raw) {
+      const panel = document.getElementById('raw-data-panel');
+      let html = '<h3 style="color:var(--accent-cyan);margin-bottom:1rem;">Raw Data Tables</h3>';
+
+      // Tide table
+      html += '<h4 style="color:var(--text-primary);margin-bottom:0.5rem;">Tide Predictions</h4>';
+      html += '<table class="data-table"><thead><tr><th>Station</th><th>Time</th><th>Type</th><th>Height</th></tr></thead><tbody>';
+      for (const [station, events] of Object.entries(raw.tidePredictions || {})) {
+        for (const evt of (events || [])) {
+          html += `<tr><td class="highlight">${station === 'hnl' ? 'Honolulu' : 'Mokuoloe'}</td><td>${evt.time}</td><td>${evt.type}</td><td>${evt.height}</td></tr>`;
+        }
+      }
+      html += '</tbody></table>';
+
+      // Spot configs
+      html += '<h4 style="color:var(--text-primary);margin-bottom:0.5rem;margin-top:1.5rem;">Spot Configurations</h4>';
+      for (const [spotId, cfg] of Object.entries(raw.spotConfigs || {})) {
+        html += `
+          <table class="data-table" style="margin-bottom:1rem;">
+            <thead><tr><th colspan="2">${escapeHtml(cfg.name)} — ${escapeHtml(cfg.region)}</th></tr></thead>
+            <tbody>
+              <tr><td>Bottom Profile</td><td class="highlight">${cfg.bottomProfile}</td></tr>
+              <tr><td>Swell Window</td><td class="highlight">${cfg.swellWindow.min}°–${cfg.swellWindow.max}°</td></tr>
+              <tr><td>Optimal Swell</td><td class="highlight">${cfg.optimalSwell}°</td></tr>
+              <tr><td>Optimal Wind</td><td class="highlight">${cfg.optimalWind}° (${cfg.optimalWindCardinal})</td></tr>
+              <tr><td>Magnification</td><td class="highlight">${cfg.magnification}x</td></tr>
+              <tr><td>Optimal Tide</td><td class="highlight">${cfg.optimalTideHeight}ft${cfg.prefersRising ? ' (rising)' : ''}</td></tr>
+              <tr><td>Optimal Period</td><td class="highlight">${cfg.optimalPeriodMin}s–${cfg.optimalPeriodMax}s</td></tr>
+              <tr><td>Tide Sensitivity</td><td class="highlight">${cfg.tideSensitivity}</td></tr>
+              <tr><td>Max Holding Size</td><td class="highlight">${cfg.maxHoldingSize}ft face</td></tr>
+            </tbody>
+          </table>
+        `;
+      }
+
+      // Spot calculations
+      html += '<h4 style="color:var(--text-primary);margin-bottom:0.5rem;margin-top:1.5rem;">Today\'s Calculated Forecasts</h4>';
+      for (const [spotId, calc] of Object.entries(raw.spotCalculations || {})) {
+        const cfg = raw.spotConfigs?.[spotId];
+        html += `<h5 style="color:var(--accent-cyan);margin-bottom:0.3rem;">${escapeHtml(cfg?.name || spotId)}</h5>`;
+        html += '<table class="data-table"><thead><tr><th>Time</th><th>Face</th><th>Haw</th><th>Swell</th><th>Wind</th><th>Tide</th><th>Rating</th></tr></thead><tbody>';
+        for (const slot of (calc.timeSlots || [])) {
+          html += `<tr>
+            <td>${slot.time}</td>
+            <td class="highlight">${slot.faceHeight}ft</td>
+            <td>${slot.hawaiianHeight}ft</td>
+            <td>${slot.swellHeight}ft@${slot.swellPeriod}s ${slot.swellDir}°</td>
+            <td>${slot.windSpeed}kts ${slot.windQuality}</td>
+            <td>${slot.tideHeight}ft ${slot.tideTrend}</td>
+            <td class="score-cell">${slot.spotRating} (${slot.spotRatingScore})</td>
+          </tr>`;
+        }
+        html += '</tbody></table>';
+      }
+
+      panel.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/\n/g, '<br>');
+    }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', fetchExplainer);
+  </script>
+</body>
+</html>
