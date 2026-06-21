@@ -963,6 +963,35 @@ body {
   overflow-x: auto;
 }
 
+/* Confidence Legend */
+.confidence-legend {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+}
+
+.legend-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.7rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-secondary);
+}
+
 /* Animations */
 @keyframes pulse {
   0%, 100% { opacity: 0.8; transform: scale(1); }

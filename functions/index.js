@@ -69,7 +69,7 @@ Write a step-by-step guide. Return ONLY a valid JSON object with this exact sche
     {
       "stepNumber": 8,
       "title": "Step 8: Regional Synthesis & AI Narrative",
-      "content": "Explain how all spot calculations feed into the island-wide outlook, regional summaries, and per-spot AI narratives. Mention that forecast confidence is High for days 0-1, Moderate for days 2-3, and Low for days 4-6."
+      "content": "Explain how all spot calculations feed into the island-wide outlook, regional summaries, and per-spot AI narratives. Explain forecast confidence: High (days 0–1, models agree closely), Moderate (days 2–3, some uncertainty in swell timing/size), Low (days 4–6, significant model spread, check back for updates)."
     }
   ],
   "regionalBreakdowns": {

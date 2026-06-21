@@ -283,6 +283,11 @@
             <div style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-muted);">
               Forecast for ${raw.forecastDayName} (${raw.forecastDate}) · Confidence: <span class="confidence-badge confidence-${(raw.confidence || 'High').toLowerCase()}">${raw.confidence || 'High'}</span>
             </div>
+            <div style="margin-top:0.75rem;display:flex;gap:1rem;font-size:0.7rem;color:var(--text-muted);flex-wrap:wrap;">
+              <span><span class="confidence-badge confidence-high" style="font-size:0.6rem;">High</span> Days 0–1: models agree closely</span>
+              <span><span class="confidence-badge confidence-moderate" style="font-size:0.6rem;">Moderate</span> Days 2–3: some variation possible</span>
+              <span><span class="confidence-badge confidence-low" style="font-size:0.6rem;">Low</span> Days 4–6: may shift significantly</span>
+            </div>
           </div>
         `;
       }

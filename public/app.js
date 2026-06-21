@@ -334,7 +334,7 @@ function renderSpots() {
         <div class="spot-title-area">
           <div style="display:flex;align-items:center;gap:0.5rem;">
             <span class="spot-name">${spot.name}</span>
-            <span class="confidence-badge ${confidenceClass}" title="Forecast confidence: ${day1Confidence}">${day1Confidence}</span>
+            <span class="confidence-badge ${confidenceClass}" title="${getConfidenceTooltip(day1Confidence)}">${day1Confidence}</span>
           </div>
           <span class="spot-region">${spot.region}</span>
         </div>
@@ -485,7 +485,7 @@ function renderSevenDayDetails(spotId) {
       <div class="detail-row">
         <div class="detail-row-header">
           ${day.dayName} (${day.date.substring(5)})
-          <span class="confidence-badge ${confClass}" style="margin-left:0.5rem;">${day.confidence}</span>
+          <span class="confidence-badge ${confClass}" style="margin-left:0.5rem;" title="${getConfidenceTooltip(day.confidence)}">${day.confidence}</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 0.25rem;">
     `;
@@ -545,4 +545,18 @@ function getRiskClass(safetyRisk) {
   if (risk.includes("high")) return "high";
   if (risk.includes("moderate") || risk.includes("medium")) return "moderate";
   return "low";
+}
+
+// Confidence level tooltips
+function getConfidenceTooltip(level) {
+  switch (level) {
+    case "High":
+      return "Days 0–1: Forecast models agree closely — high reliability. Conditions very likely as predicted.";
+    case "Moderate":
+      return "Days 2–3: Models beginning to diverge — expect some variation in swell timing and size.";
+    case "Low":
+      return "Days 4–6: Long-range forecast — conditions may shift significantly. Check back for updates.";
+    default:
+      return "";
+  }
 }
