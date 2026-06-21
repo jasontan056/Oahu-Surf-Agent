@@ -140,7 +140,7 @@ let memoryCache = null;
 let memoryCacheTime = 0;
 let explainerCache = null;
 let explainerCacheTime = 0;
-const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours — matches Open-Meteo model update frequency
 
 // Helper to get day name safely
 function getDayName(dateStr) {
@@ -296,13 +296,15 @@ export const forecast = onRequest(
             const cacheData = cacheDoc.data();
             const ageMs = Date.now() - cacheData.updatedAt.toDate().getTime();
 
-            if (ageMs < THREE_HOURS_MS) {
-              console.log("Serving surf forecast from Firestore cache");
+            if (ageMs < CACHE_TTL_MS) {
+              console.log(`Serving forecast from Firestore cache (${Math.round(ageMs/60000)}m old)`);
               res.setHeader(
                 "Cache-Control",
                 "public, max-age=60, s-maxage=10800, stale-while-revalidate=600"
               );
               return res.status(200).json(cacheData.forecast);
+            } else {
+              console.log(`Firestore cache expired (${Math.round(ageMs/60000)}m old > ${Math.round(CACHE_TTL_MS/60000)}m TTL)`);
             }
           }
         } catch (firestoreError) {
@@ -310,16 +312,17 @@ export const forecast = onRequest(
             "Firestore cache read failed. Falling back to memory cache:",
             firestoreError.message
           );
+        }
 
-          const ageMs = Date.now() - memoryCacheTime;
-          if (memoryCache && ageMs < THREE_HOURS_MS) {
-            console.log("Serving surf forecast from In-Memory cache");
-            res.setHeader(
-              "Cache-Control",
-              "public, max-age=60, s-maxage=10800, stale-while-revalidate=600"
-            );
-            return res.status(200).json(memoryCache);
-          }
+        // Try memory cache as fallback
+        const memAgeMs = Date.now() - memoryCacheTime;
+        if (memoryCache && memAgeMs < CACHE_TTL_MS) {
+          console.log(`Serving forecast from memory cache (${Math.round(memAgeMs/60000)}m old)`);
+          res.setHeader(
+            "Cache-Control",
+            "public, max-age=60, s-maxage=10800, stale-while-revalidate=600"
+          );
+          return res.status(200).json(memoryCache);
         }
       }
 
@@ -855,7 +858,7 @@ export const forecastExplainer = onRequest(
         if (explainerCacheDoc.exists) {
           const explainerCacheData = explainerCacheDoc.data();
           const explainerAgeMs = Date.now() - explainerCacheData.updatedAt.toDate().getTime();
-          if (explainerAgeMs < THREE_HOURS_MS && explainerCacheData.explainer) {
+          if (explainerAgeMs < CACHE_TTL_MS && explainerCacheData.explainer) {
             console.log("Serving explainer from Firestore cache");
             aiExplainer = explainerCacheData.explainer;
           }
@@ -867,7 +870,7 @@ export const forecastExplainer = onRequest(
       // Try memory cache
       if (!aiExplainer) {
         const memAgeMs = Date.now() - explainerCacheTime;
-        if (explainerCache && memAgeMs < THREE_HOURS_MS) {
+        if (explainerCache && memAgeMs < CACHE_TTL_MS) {
           console.log("Serving explainer from memory cache");
           aiExplainer = explainerCache;
         }
