@@ -655,15 +655,11 @@ async function buildAndCacheForecast() {
         narrativeForecast,
       };
 
-      // 8. Cache locally in memory
+      // 8. Cache to memory
       memoryCache = finalForecast;
       memoryCacheTime = Date.now();
 
-      // Invalidate explainer cache — it's now stale
-      explainerCache = null;
-      explainerCacheTime = 0;
-
-      // 9. Try writing to Firestore Cache
+      // 9. Write to Firestore cache
       try {
         const cacheRef = db.collection("forecasts").doc("oahu");
         await cacheRef.set({
@@ -671,20 +667,17 @@ async function buildAndCacheForecast() {
           forecast: finalForecast,
         });
         console.log("Surf forecast successfully cached in Firestore.");
-
-        // Invalidate stale explainer in Firestore when forecast changes
-        try {
-          const explainerCacheRef = db.collection("explainers").doc("oahu");
-          await explainerCacheRef.delete();
-        } catch (e) {
-          // Silently ignore if doc doesn't exist
-        }
       } catch (firestoreError) {
         console.warn(
           "Firestore cache write failed. Cached in-memory only:",
           firestoreError.message
         );
       }
+
+      // 10. Regenerate explainer in background (don't block forecast response)
+      buildAndCacheExplainer(finalForecast).catch((e) =>
+        console.warn("Background explainer regeneration failed:", e.message)
+      );
 
       return finalForecast;
   } // end buildAndCacheForecast
@@ -709,6 +702,109 @@ async function buildAndCacheForecast() {
 // ---------------------------------------------------------------------------
 // Forecast Explainer endpoint — step-by-step walkthrough of today's forecast
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Explainer helpers — build analysis data & cache explainer
+// ---------------------------------------------------------------------------
+function buildAnalysisData(forecast) {
+  const todayData = forecast.days[0];
+  const representativeSpots = ["pipeline", "bowls", "makaha", "sandybeach"];
+
+  const spotConfigs = {};
+  for (const spot of forecast.spotsList) {
+    if (representativeSpots.includes(spot.id)) {
+      spotConfigs[spot.id] = {
+        name: spot.name, region: spot.region, type: spot.type,
+        difficulty: spot.difficulty, bottomProfile: spot.bottomProfile,
+        swellWindow: spot.swellWindow, optimalSwell: spot.optimalSwell,
+        optimalWind: spot.optimalWind, optimalWindCardinal: getWindCardinal(spot.optimalWind),
+        magnification: spot.magnification, optimalTideHeight: spot.optimalTideHeight,
+        tideSensitivity: spot.tideSensitivity, prefersRising: spot.prefersRising,
+        optimalPeriodMin: spot.optimalPeriodMin, optimalPeriodMax: spot.optimalPeriodMax,
+        maxHoldingSize: spot.maxHoldingSize, description: spot.description,
+      };
+    }
+  }
+
+  const spotCalculations = {};
+  for (const spotId of representativeSpots) {
+    const forecasts = todayData.spots[spotId] || [];
+    if (forecasts.length === 0) continue;
+    const bestSlot = forecasts.reduce((best, f) =>
+      (f.spotRatingScore || 0) > (best.spotRatingScore || 0) ? f : best, forecasts[0]);
+    spotCalculations[spotId] = {
+      timeSlots: forecasts.map((f) => ({
+        time: f.time, faceHeight: f.faceHeight, hawaiianHeight: f.hawaiianHeight,
+        swellComponents: f.swellComponents || [], multiSwell: f.multiSwell || "N/A",
+        swellHeight: f.swellHeight, swellPeriod: f.swellPeriod, swellDir: f.swellDir,
+        windSpeed: f.windSpeed, windDir: f.windDir, windGusts: f.windGusts || 0,
+        windQuality: f.windQuality, windClass: f.windClass,
+        tideHeight: f.tideHeight, tideTrend: f.tideTrend, tideStage: f.tideStage,
+        spotRatingScore: f.spotRatingScore, spotRating: f.spotRating, spotRatingClass: f.spotRatingClass,
+      })),
+      bestSlot: { time: bestSlot.time, faceHeight: bestSlot.faceHeight,
+        spotRatingScore: bestSlot.spotRatingScore, spotRating: bestSlot.spotRating },
+    };
+  }
+
+  const regionCoords = {
+    "North Shore": { lat: 21.664, lon: -158.053 },
+    "South Shore": { lat: 21.284, lon: -157.842 },
+    "West Side": { lat: 21.475, lon: -158.225 },
+    "East Side": { lat: 21.285, lon: -157.672 },
+  };
+  const regionRawData = {};
+  for (const [region, coords] of Object.entries(regionCoords)) {
+    const regionSpot = forecast.spotsList.find((s) => s.region === region);
+    if (!regionSpot) continue;
+    const regionForecasts = todayData.spots[regionSpot.id] || [];
+    if (regionForecasts.length === 0) continue;
+    const f = regionForecasts[0];
+    regionRawData[region] = {
+      coordinates: coords, swellComponents: f.swellComponents || [],
+      multiSwell: f.multiSwell || "N/A", windSpeed: f.windSpeed,
+      windDir: f.windDir, windGusts: f.windGusts || 0,
+      tideHeight: f.tideHeight, tideTrend: f.tideTrend,
+    };
+  }
+
+  return {
+    forecastDate: todayData.date,
+    forecastDayName: todayData.dayName,
+    confidence: todayData.confidence,
+    regionRawData,
+    tidePredictions: {
+      hnl: todayData.tides?.hnl || [],
+      mok: todayData.tides?.mok || [],
+    },
+    spotConfigs,
+    spotCalculations,
+  };
+}
+
+async function buildAndCacheExplainer(forecast) {
+  try {
+    const analysisData = buildAnalysisData(forecast);
+    console.log("Regenerating forecast explainer in background...");
+    const aiExplainer = await generateExplainer(analysisData);
+    if (aiExplainer) {
+      explainerCache = aiExplainer;
+      explainerCacheTime = Date.now();
+      try {
+        const explainerCacheRef = db.collection("explainers").doc("oahu");
+        await explainerCacheRef.set({
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          explainer: aiExplainer,
+        });
+        console.log("Explainer cached in background.");
+      } catch (e) {
+        console.warn("Background explainer Firestore cache failed:", e.message);
+      }
+    }
+  } catch (e) {
+    console.warn("Background explainer generation failed:", e.message);
+  }
+}
+
 export const forecastExplainer = onRequest(
   { cors: false, timeoutSeconds: 120, secrets: [deepseekApiSecret] },
   async (req, res) => {
@@ -740,121 +836,8 @@ export const forecastExplainer = onRequest(
         });
       }
 
-      // 2. Extract today's raw analysis data for representative spots
-      const todayData = forecast.days[0];
-      const representativeSpots = ["pipeline", "bowls", "makaha", "sandybeach"];
-
-      // Build spot config summaries
-      const spotConfigs = {};
-      for (const spot of forecast.spotsList) {
-        if (representativeSpots.includes(spot.id)) {
-          spotConfigs[spot.id] = {
-            name: spot.name,
-            region: spot.region,
-            type: spot.type,
-            difficulty: spot.difficulty,
-            bottomProfile: spot.bottomProfile,
-            swellWindow: spot.swellWindow,
-            optimalSwell: spot.optimalSwell,
-            optimalWind: spot.optimalWind,
-            optimalWindCardinal: getWindCardinal(spot.optimalWind),
-            magnification: spot.magnification,
-            optimalTideHeight: spot.optimalTideHeight,
-            tideSensitivity: spot.tideSensitivity,
-            prefersRising: spot.prefersRising,
-            optimalPeriodMin: spot.optimalPeriodMin,
-            optimalPeriodMax: spot.optimalPeriodMax,
-            maxHoldingSize: spot.maxHoldingSize,
-            description: spot.description,
-          };
-        }
-      }
-
-      // Build today's calculated data per spot
-      const spotCalculations = {};
-      for (const spotId of representativeSpots) {
-        const forecasts = todayData.spots[spotId] || [];
-        if (forecasts.length === 0) continue;
-
-        const bestSlot = forecasts.reduce((best, f) =>
-          (f.spotRatingScore || 0) > (best.spotRatingScore || 0) ? f : best
-        , forecasts[0]);
-
-        spotCalculations[spotId] = {
-          timeSlots: forecasts.map((f) => ({
-            time: f.time,
-            faceHeight: f.faceHeight,
-            hawaiianHeight: f.hawaiianHeight,
-            swellComponents: f.swellComponents || [],
-            multiSwell: f.multiSwell || "N/A",
-            swellHeight: f.swellHeight,
-            swellPeriod: f.swellPeriod,
-            swellDir: f.swellDir,
-            windSpeed: f.windSpeed,
-            windDir: f.windDir,
-            windGusts: f.windGusts || 0,
-            windQuality: f.windQuality,
-            windClass: f.windClass,
-            tideHeight: f.tideHeight,
-            tideTrend: f.tideTrend,
-            tideStage: f.tideStage,
-            spotRatingScore: f.spotRatingScore,
-            spotRating: f.spotRating,
-            spotRatingClass: f.spotRatingClass,
-          })),
-          bestSlot: {
-            time: bestSlot.time,
-            faceHeight: bestSlot.faceHeight,
-            spotRatingScore: bestSlot.spotRatingScore,
-            spotRating: bestSlot.spotRating,
-          },
-        };
-      }
-
-      // Build raw data summary for the 4 regions
-      const regionRawData = {};
-      const regionCoords = {
-        "North Shore": { lat: 21.664, lon: -158.053 },
-        "South Shore": { lat: 21.284, lon: -157.842 },
-        "West Side": { lat: 21.475, lon: -158.225 },
-        "East Side": { lat: 21.285, lon: -157.672 },
-      };
-
-      for (const [region, coords] of Object.entries(regionCoords)) {
-        // Find a spot from this region to get its swell data
-        const regionSpot = forecast.spotsList.find((s) => s.region === region);
-        if (!regionSpot) continue;
-        const regionForecasts = todayData.spots[regionSpot.id] || [];
-        if (regionForecasts.length === 0) continue;
-
-        const f = regionForecasts[0];
-        regionRawData[region] = {
-          coordinates: coords,
-          swellComponents: f.swellComponents || [],
-          multiSwell: f.multiSwell || "N/A",
-          windSpeed: f.windSpeed,
-          windDir: f.windDir,
-          windGusts: f.windGusts || 0,
-          tideHeight: f.tideHeight,
-          tideTrend: f.tideTrend,
-        };
-      }
-
-      // Tide data for today
-      const todayTides = {
-        hnl: todayData.tides?.hnl || [],
-        mok: todayData.tides?.mok || [],
-      };
-
-      const analysisData = {
-        forecastDate: todayData.date,
-        forecastDayName: todayData.dayName,
-        confidence: todayData.confidence,
-        regionRawData,
-        tidePredictions: todayTides,
-        spotConfigs,
-        spotCalculations,
-      };
+      // 2. Build analysis data using shared helper
+      const analysisData = buildAnalysisData(forecast);
 
       // 3. Check explainer cache (Firestore → memory → regenerate)
       let aiExplainer = null;
