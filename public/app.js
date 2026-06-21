@@ -102,25 +102,6 @@ async function fetchForecast(force = false) {
   }
 }
 
-// Feedback submission
-async function submitFeedback(spotId, date, timeSlot, rating) {
-  try {
-    const resp = await fetch("/api/feedback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ spotId, date, timeSlot, rating }),
-    });
-    if (resp.ok) {
-      console.log(`Feedback sent: ${spotId} ${rating}`);
-      return true;
-    }
-    return false;
-  } catch (e) {
-    console.warn("Feedback failed:", e);
-    return false;
-  }
-}
-
 // Show Loading State
 function showLoading() {
   spotsGridEl.innerHTML = `
@@ -406,13 +387,6 @@ function renderSpots() {
         <p class="narrative-text">${spotNarrativeText}</p>
       </div>
 
-      <div class="feedback-row" data-spot="${spot.id}">
-        <span class="feedback-label">Accurate?</span>
-        <button class="feedback-btn up" data-spot="${spot.id}" data-rating="up">👍</button>
-        <button class="feedback-btn down" data-spot="${spot.id}" data-rating="down">👎</button>
-        <span class="feedback-thanks" style="display:none;">Thanks!</span>
-      </div>
-
       <button class="details-toggle" data-spot="${spot.id}">
         <span>Show 7-Day Details</span>
         <svg class="toggle-arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -430,26 +404,6 @@ function renderSpots() {
     starBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       toggleStarSpot(spot.id);
-    });
-
-    // Feedback buttons
-    const feedbackBtns = card.querySelectorAll(".feedback-btn");
-    feedbackBtns.forEach((btn) => {
-      btn.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        const rating = btn.dataset.rating;
-        const thanksEl = card.querySelector(".feedback-thanks");
-        const date = forecastData.days[0]?.date;
-        const success = await submitFeedback(spot.id, date, "morning", rating);
-        if (success && thanksEl) {
-          thanksEl.style.display = "inline";
-          feedbackBtns.forEach((b) => (b.disabled = true));
-          setTimeout(() => {
-            thanksEl.style.display = "none";
-            feedbackBtns.forEach((b) => (b.disabled = false));
-          }, 2000);
-        }
-      });
     });
 
     // Detail toggle
