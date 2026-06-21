@@ -216,12 +216,12 @@ export const forecast = onRequest(
         "swell_wave_height",
         "swell_wave_period",
         "swell_wave_direction",
-        "swell_wave_1_height",
-        "swell_wave_1_period",
-        "swell_wave_1_direction",
-        "swell_wave_2_height",
-        "swell_wave_2_period",
-        "swell_wave_2_direction",
+        "secondary_swell_wave_height",
+        "secondary_swell_wave_period",
+        "secondary_swell_wave_direction",
+        "tertiary_swell_wave_height",
+        "tertiary_swell_wave_period",
+        "tertiary_swell_wave_direction",
         "wind_wave_height",
         "wind_wave_period",
         "wind_wave_direction",
@@ -358,19 +358,26 @@ export const forecast = onRequest(
             // --- Build multi-swell components ---
             const swellComponents = [];
 
-            // Primary swell
-            const sw1Height = spotHourlyMarine.swell_wave_1_height?.[timeIdx] || 0;
-            const sw1Period = spotHourlyMarine.swell_wave_1_period?.[timeIdx] || 0;
-            const sw1Dir = spotHourlyMarine.swell_wave_1_direction?.[timeIdx] || 0;
+            // Primary swell (combined swell)
+            const sw1Height = spotHourlyMarine.swell_wave_height?.[timeIdx] || 0;
+            const sw1Period = spotHourlyMarine.swell_wave_period?.[timeIdx] || 0;
+            const sw1Dir = spotHourlyMarine.swell_wave_direction?.[timeIdx] || 0;
             if (sw1Height > 0.1)
               swellComponents.push({ height: sw1Height, period: sw1Period, direction: sw1Dir });
 
             // Secondary swell
-            const sw2Height = spotHourlyMarine.swell_wave_2_height?.[timeIdx] || 0;
-            const sw2Period = spotHourlyMarine.swell_wave_2_period?.[timeIdx] || 0;
-            const sw2Dir = spotHourlyMarine.swell_wave_2_direction?.[timeIdx] || 0;
+            const sw2Height = spotHourlyMarine.secondary_swell_wave_height?.[timeIdx] || 0;
+            const sw2Period = spotHourlyMarine.secondary_swell_wave_period?.[timeIdx] || 0;
+            const sw2Dir = spotHourlyMarine.secondary_swell_wave_direction?.[timeIdx] || 0;
             if (sw2Height > 0.1)
               swellComponents.push({ height: sw2Height, period: sw2Period, direction: sw2Dir });
+
+            // Tertiary swell (GFS only)
+            const sw3Height = spotHourlyMarine.tertiary_swell_wave_height?.[timeIdx] || 0;
+            const sw3Period = spotHourlyMarine.tertiary_swell_wave_period?.[timeIdx] || 0;
+            const sw3Dir = spotHourlyMarine.tertiary_swell_wave_direction?.[timeIdx] || 0;
+            if (sw3Height > 0.1)
+              swellComponents.push({ height: sw3Height, period: sw3Period, direction: sw3Dir });
 
             // Wind wave
             const wwHeight = spotHourlyMarine.wind_wave_height?.[timeIdx] || 0;
