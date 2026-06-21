@@ -71,8 +71,15 @@ body {
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: calc(2rem + env(safe-area-inset-top)) 1.5rem calc(2rem + env(safe-area-inset-bottom)) 1.5rem;
   position: relative;
+}
+
+@media (orientation: landscape) {
+  .container {
+    padding-left: calc(1.5rem + env(safe-area-inset-left));
+    padding-right: calc(1.5rem + env(safe-area-inset-right));
+  }
 }
 
 /* Header */
@@ -518,6 +525,7 @@ body {
   gap: 0.35rem;
   font-size: 0.72rem;
   color: var(--text-secondary);
+  min-width: 0;
 }
 
 .insight-icon {
@@ -535,6 +543,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 /* Dynamic Safety Risk Styling */
@@ -953,8 +962,18 @@ body {
 /* Responsive Mobile Layouts */
 @media (max-width: 600px) {
   .container {
-    padding: 1rem;
+    padding: calc(1rem + env(safe-area-inset-top)) 0.5rem calc(1rem + env(safe-area-inset-bottom)) 0.5rem;
   }
+}
+
+@media (max-width: 600px) and (orientation: landscape) {
+  .container {
+    padding-left: calc(0.5rem + env(safe-area-inset-left));
+    padding-right: calc(0.5rem + env(safe-area-inset-right));
+  }
+}
+
+@media (max-width: 600px) {
   
   .header {
     margin-bottom: 1.5rem;
@@ -973,7 +992,7 @@ body {
   }
   
   .outlook-card {
-    padding: 1.25rem;
+    padding: 1rem;
     margin-bottom: 1.5rem;
   }
   
@@ -998,11 +1017,48 @@ body {
   }
   
   .spot-card {
-    padding: 1.25rem;
+    padding: 1rem;
+  }
+  
+  .spot-overview {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+  }
+  
+  .spot-overview .overview-box:nth-child(3) {
+    grid-column: span 2;
+  }
+  
+  .overview-box {
+    padding: 0.5rem 0.25rem;
+  }
+
+  .overview-label {
+    font-size: 0.65rem;
   }
   
   .overview-val {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
+  }
+  
+  .overview-rating-badge, .overview-quality-badge {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.35rem;
+  }
+  
+  .overview-val-sub {
+    font-size: 0.65rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1.2fr 1fr;
+    gap: 0.5rem;
+    padding: 0.6rem;
+  }
+
+  .detail-metric {
+    word-break: break-word;
   }
   
   .sidebar {
@@ -1010,6 +1066,6 @@ body {
   }
   
   .tide-card, .about-card {
-    padding: 1.25rem;
+    padding: 1rem;
   }
 }

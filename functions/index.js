@@ -252,82 +252,8 @@ export const feedback = onRequest(
 );
 
 // ---------------------------------------------------------------------------
-// Main forecast endpoint
-// ---------------------------------------------------------------------------
-export const forecast = onRequest(
-  {
-    cors: false,
-    timeoutSeconds: 120,
-    secrets: [deepseekApiSecret],
-  },
-  async (req, res) => {
-    try {
-      res.setHeader("Vary", "Origin");
-      handleCors(req, res);
-
-      if (req.method === "OPTIONS") {
-        return res.status(204).send("");
-      }
-
-      const forceRefresh = req.query.force === "true";
-      if (forceRefresh) {
-        const clientToken = req.query.forceToken;
-        const serverToken = process.env.FORCE_TOKEN || "sk-oahu-surf-agent";
-        if (clientToken !== serverToken) {
-          console.warn("Unauthorized attempt to bypass cache with force=true");
-          res.setHeader(
-            "Cache-Control",
-            "no-store, no-cache, must-revalidate, proxy-revalidate"
-          );
-          return res.status(401).json({
-            error: "Unauthorized",
-            message: "Invalid forceToken. Cache bypass is restricted.",
-          });
-        }
-        console.log("Authorized force refresh triggered");
-      }
-
-      // 1. Try to read from Firestore Cache, fall back to Memory cache
-      if (!forceRefresh) {
-        try {
-          const cacheRef = db.collection("forecasts").doc("oahu");
-          const cacheDoc = await cacheRef.get();
-
-          if (cacheDoc.exists) {
-            const cacheData = cacheDoc.data();
-            const ageMs = Date.now() - cacheData.updatedAt.toDate().getTime();
-
-            if (ageMs < CACHE_TTL_MS) {
-              console.log(`Serving forecast from Firestore cache (${Math.round(ageMs/60000)}m old)`);
-              res.setHeader(
-                "Cache-Control",
-                "public, max-age=60, s-maxage=10800, stale-while-revalidate=600"
-              );
-              return res.status(200).json(cacheData.forecast);
-            } else {
-              console.log(`Firestore cache expired (${Math.round(ageMs/60000)}m old > ${Math.round(CACHE_TTL_MS/60000)}m TTL)`);
-            }
-          }
-        } catch (firestoreError) {
-          console.warn(
-            "Firestore cache read failed. Falling back to memory cache:",
-            firestoreError.message
-          );
-        }
-
-        // Try memory cache as fallback
-        const memAgeMs = Date.now() - memoryCacheTime;
-        if (memoryCache && memAgeMs < CACHE_TTL_MS) {
-          console.log(`Serving forecast from memory cache (${Math.round(memAgeMs/60000)}m old)`);
-          res.setHeader(
-            "Cache-Control",
-            "public, max-age=60, s-maxage=10800, stale-while-revalidate=600"
-          );
-          return res.status(200).json(memoryCache);
-        }
-      }
-
 // Core forecast generation — reusable by both HTTP endpoint and scheduled refresh
+// ---------------------------------------------------------------------------
 async function buildAndCacheForecast() {
       console.log("Fetching fresh meteorological data from APIs...");
 
@@ -680,7 +606,83 @@ async function buildAndCacheForecast() {
       );
 
       return finalForecast;
-  } // end buildAndCacheForecast
+}
+
+// ---------------------------------------------------------------------------
+// Main forecast endpoint
+// ---------------------------------------------------------------------------
+export const forecast = onRequest(
+  {
+    cors: false,
+    timeoutSeconds: 120,
+    secrets: [deepseekApiSecret],
+  },
+  async (req, res) => {
+    try {
+      res.setHeader("Vary", "Origin");
+      handleCors(req, res);
+
+      if (req.method === "OPTIONS") {
+        return res.status(204).send("");
+      }
+
+      const forceRefresh = req.query.force === "true";
+      if (forceRefresh) {
+        const clientToken = req.query.forceToken;
+        const serverToken = process.env.FORCE_TOKEN || "sk-oahu-surf-agent";
+        if (clientToken !== serverToken) {
+          console.warn("Unauthorized attempt to bypass cache with force=true");
+          res.setHeader(
+            "Cache-Control",
+            "no-store, no-cache, must-revalidate, proxy-revalidate"
+          );
+          return res.status(401).json({
+            error: "Unauthorized",
+            message: "Invalid forceToken. Cache bypass is restricted.",
+          });
+        }
+        console.log("Authorized force refresh triggered");
+      }
+
+      // 1. Try to read from Firestore Cache, fall back to Memory cache
+      if (!forceRefresh) {
+        try {
+          const cacheRef = db.collection("forecasts").doc("oahu");
+          const cacheDoc = await cacheRef.get();
+
+          if (cacheDoc.exists) {
+            const cacheData = cacheDoc.data();
+            const ageMs = Date.now() - cacheData.updatedAt.toDate().getTime();
+
+            if (ageMs < CACHE_TTL_MS) {
+              console.log(`Serving forecast from Firestore cache (${Math.round(ageMs/60000)}m old)`);
+              res.setHeader(
+                "Cache-Control",
+                "public, max-age=60, s-maxage=10800, stale-while-revalidate=600"
+              );
+              return res.status(200).json(cacheData.forecast);
+            } else {
+              console.log(`Firestore cache expired (${Math.round(ageMs/60000)}m old > ${Math.round(CACHE_TTL_MS/60000)}m TTL)`);
+            }
+          }
+        } catch (firestoreError) {
+          console.warn(
+            "Firestore cache read failed. Falling back to memory cache:",
+            firestoreError.message
+          );
+        }
+
+        // Try memory cache as fallback
+        const memAgeMs = Date.now() - memoryCacheTime;
+        if (memoryCache && memAgeMs < CACHE_TTL_MS) {
+          console.log(`Serving forecast from memory cache (${Math.round(memAgeMs/60000)}m old)`);
+          res.setHeader(
+            "Cache-Control",
+            "public, max-age=60, s-maxage=10800, stale-while-revalidate=600"
+          );
+          return res.status(200).json(memoryCache);
+        }
+      }
 
       const finalForecast = await buildAndCacheForecast();
 
