@@ -138,6 +138,8 @@ const db = admin.firestore();
 // In-Memory cache fallback in case Firestore is not provisioned/enabled
 let memoryCache = null;
 let memoryCacheTime = 0;
+let explainerCache = null;
+let explainerCacheTime = 0;
 const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
 
 // Helper to get day name safely
@@ -651,6 +653,10 @@ export const forecast = onRequest(
       memoryCache = finalForecast;
       memoryCacheTime = Date.now();
 
+      // Invalidate explainer cache — it's now stale
+      explainerCache = null;
+      explainerCacheTime = 0;
+
       // 9. Try writing to Firestore Cache
       try {
         const cacheRef = db.collection("forecasts").doc("oahu");
@@ -659,6 +665,14 @@ export const forecast = onRequest(
           forecast: finalForecast,
         });
         console.log("Surf forecast successfully cached in Firestore.");
+
+        // Invalidate stale explainer in Firestore when forecast changes
+        try {
+          const explainerCacheRef = db.collection("explainers").doc("oahu");
+          await explainerCacheRef.delete();
+        } catch (e) {
+          // Silently ignore if doc doesn't exist
+        }
       } catch (firestoreError) {
         console.warn(
           "Firestore cache write failed. Cached in-memory only:",
@@ -831,12 +845,60 @@ export const forecastExplainer = onRequest(
         spotCalculations,
       };
 
-      // 3. Generate AI explainer narrative
-      console.log("Generating forecast explainer narrative...");
-      const aiExplainer = await generateExplainer(analysisData);
+      // 3. Check explainer cache (Firestore → memory → regenerate)
+      let aiExplainer = null;
 
-      // 4. Return both raw data and AI narrative
-      res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
+      // Try Firestore cache
+      try {
+        const explainerCacheRef = db.collection("explainers").doc("oahu");
+        const explainerCacheDoc = await explainerCacheRef.get();
+        if (explainerCacheDoc.exists) {
+          const explainerCacheData = explainerCacheDoc.data();
+          const explainerAgeMs = Date.now() - explainerCacheData.updatedAt.toDate().getTime();
+          if (explainerAgeMs < THREE_HOURS_MS && explainerCacheData.explainer) {
+            console.log("Serving explainer from Firestore cache");
+            aiExplainer = explainerCacheData.explainer;
+          }
+        }
+      } catch (e) {
+        console.warn("Explainer Firestore cache read failed:", e.message);
+      }
+
+      // Try memory cache
+      if (!aiExplainer) {
+        const memAgeMs = Date.now() - explainerCacheTime;
+        if (explainerCache && memAgeMs < THREE_HOURS_MS) {
+          console.log("Serving explainer from memory cache");
+          aiExplainer = explainerCache;
+        }
+      }
+
+      // 4. Generate if cache miss
+      if (!aiExplainer) {
+        console.log("Generating forecast explainer narrative...");
+        aiExplainer = await generateExplainer(analysisData);
+
+        if (aiExplainer) {
+          // Cache in memory
+          explainerCache = aiExplainer;
+          explainerCacheTime = Date.now();
+
+          // Cache in Firestore
+          try {
+            const explainerCacheRef = db.collection("explainers").doc("oahu");
+            await explainerCacheRef.set({
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              explainer: aiExplainer,
+            });
+            console.log("Explainer cached in Firestore.");
+          } catch (e) {
+            console.warn("Explainer Firestore cache write failed:", e.message);
+          }
+        }
+      }
+
+      // 5. Return both raw data and AI narrative
+      res.setHeader("Cache-Control", "public, max-age=300, s-maxage=10800, stale-while-revalidate=600");
       return res.status(200).json({
         updatedAt: forecast.updatedAt,
         analysisData,
