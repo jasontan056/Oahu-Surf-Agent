@@ -370,7 +370,7 @@ function renderSpots() {
       </div>
 
       <div class="spot-narrative-forecast">
-        <div class="narrative-label">AI Spot Interpretation</div>
+        <div class="narrative-label">Spot Interpretation</div>
         <p class="narrative-text">${spotNarrativeText}</p>
       </div>
 
