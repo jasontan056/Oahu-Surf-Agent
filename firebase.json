@@ -23,6 +23,10 @@
     ],
     "rewrites": [
       {
+        "source": "/api/feedback",
+        "function": "feedback"
+      },
+      {
         "source": "/api/**",
         "function": "forecast"
       }

@@ -2,26 +2,26 @@
 
 // State Management
 let forecastData = null;
-let activeRegion = 'all';
-let activeTideStation = 'hnl'; // 'hnl' or 'mok'
-let searchQuery = '';
+let activeRegion = "all";
+let activeTideStation = "hnl"; // 'hnl' or 'mok'
+let searchQuery = "";
 
 // DOM Elements
-const lastUpdatedEl = document.getElementById('last-updated');
-const refreshBtn = document.getElementById('refresh-btn');
-const outlookTextEl = document.getElementById('outlook-text');
-const spotsGridEl = document.getElementById('spots-grid');
-const tideListEl = document.getElementById('tide-list');
-const regionSummaryContainer = document.getElementById('region-summary-container');
-const regionSummaryTitle = document.getElementById('region-summary-title');
-const regionSummaryText = document.getElementById('region-summary-text');
-const regionTabs = document.querySelectorAll('.nav-tab');
-const tideTabs = document.querySelectorAll('.tide-tab');
+const lastUpdatedEl = document.getElementById("last-updated");
+const refreshBtn = document.getElementById("refresh-btn");
+const outlookTextEl = document.getElementById("outlook-text");
+const spotsGridEl = document.getElementById("spots-grid");
+const tideListEl = document.getElementById("tide-list");
+const regionSummaryContainer = document.getElementById("region-summary-container");
+const regionSummaryTitle = document.getElementById("region-summary-title");
+const regionSummaryText = document.getElementById("region-summary-text");
+const regionTabs = document.querySelectorAll(".nav-tab");
+const tideTabs = document.querySelectorAll(".tide-tab");
 
 // Starred Spots Helpers
 function getStarredSpots() {
   try {
-    return JSON.parse(localStorage.getItem('starred_spots')) || [];
+    return JSON.parse(localStorage.getItem("starred_spots")) || [];
   } catch (e) {
     return [];
   }
@@ -30,51 +30,47 @@ function getStarredSpots() {
 function toggleStarSpot(spotId) {
   let starred = getStarredSpots();
   if (starred.includes(spotId)) {
-    starred = starred.filter(id => id !== spotId);
+    starred = starred.filter((id) => id !== spotId);
   } else {
     starred.push(spotId);
   }
-  localStorage.setItem('starred_spots', JSON.stringify(starred));
+  localStorage.setItem("starred_spots", JSON.stringify(starred));
   renderSpots();
 }
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   fetchForecast();
   setupEventListeners();
 });
 
 // Event Listeners Setup
 function setupEventListeners() {
-  // Refresh Button
-  refreshBtn.addEventListener('click', () => {
-    fetchForecast(true); // force refresh
+  refreshBtn.addEventListener("click", () => {
+    fetchForecast(true);
   });
 
-  // Region Filter Tabs
-  regionTabs.forEach(tab => {
-    tab.addEventListener('click', (e) => {
-      regionTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
+  regionTabs.forEach((tab) => {
+    tab.addEventListener("click", (e) => {
+      regionTabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
       activeRegion = tab.dataset.region;
       renderDashboard();
     });
   });
 
-  // Tide Station Tabs
-  tideTabs.forEach(tab => {
-    tab.addEventListener('click', (e) => {
-      tideTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
+  tideTabs.forEach((tab) => {
+    tab.addEventListener("click", (e) => {
+      tideTabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
       activeTideStation = tab.dataset.station;
       renderTides();
     });
   });
 
-  // Search Input
-  const searchInput = document.getElementById('search-input');
+  const searchInput = document.getElementById("search-input");
   if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
+    searchInput.addEventListener("input", (e) => {
       searchQuery = e.target.value.toLowerCase().trim();
       renderSpots();
     });
@@ -85,25 +81,43 @@ function setupEventListeners() {
 async function fetchForecast(force = false) {
   showLoading();
   try {
-    let url = '/api/forecast';
+    let url = "/api/forecast";
     if (force) {
-      url += '?force=true&forceToken=sk-oahu-surf-agent';
+      url += "?force=true&forceToken=sk-oahu-surf-agent";
     }
-    // Use no-cache options if forced, bypassing local browser cache but not backend database caches
-    const options = force ? { cache: 'no-cache' } : {};
-    
+    const options = force ? { cache: "no-cache" } : {};
+
     const response = await fetch(url, options);
     if (!response.ok) {
       throw new Error(`Server error: ${response.status}`);
     }
-    
+
     forecastData = await response.json();
     console.log("Forecast loaded successfully:", forecastData);
-    
+
     renderDashboard();
   } catch (error) {
     console.error("Error fetching forecast:", error);
     showError(error.message);
+  }
+}
+
+// Feedback submission
+async function submitFeedback(spotId, date, timeSlot, rating) {
+  try {
+    const resp = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ spotId, date, timeSlot, rating }),
+    });
+    if (resp.ok) {
+      console.log(`Feedback sent: ${spotId} ${rating}`);
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.warn("Feedback failed:", e);
+    return false;
   }
 }
 
@@ -133,23 +147,22 @@ function showError(message) {
 function renderDashboard() {
   if (!forecastData) return;
 
-  // 1. Last Updated Timestamp
   const updateDate = new Date(forecastData.updatedAt);
-  lastUpdatedEl.textContent = `Updated: ${updateDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} HST`;
+  lastUpdatedEl.textContent = `Updated: ${updateDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} HST`;
 
-  // 2. Swell Outlook
-  outlookTextEl.textContent = forecastData.narrativeForecast?.outlook || "Swell forecast summary currently unavailable.";
+  outlookTextEl.textContent =
+    forecastData.narrativeForecast?.outlook || "Swell forecast summary currently unavailable.";
 
-  // 3. Regional Summary Box
-  if (activeRegion === 'all') {
-    regionSummaryContainer.style.display = 'none';
+  if (activeRegion === "all") {
+    regionSummaryContainer.style.display = "none";
   } else {
-    regionSummaryContainer.style.display = 'block';
+    regionSummaryContainer.style.display = "block";
     regionSummaryTitle.textContent = `${activeRegion} Outlook`;
-    regionSummaryText.textContent = forecastData.narrativeForecast?.regions?.[activeRegion] || "Narrative forecast unavailable for this shore.";
+    regionSummaryText.textContent =
+      forecastData.narrativeForecast?.regions?.[activeRegion] ||
+      "Narrative forecast unavailable for this shore.";
   }
 
-  // 4. Render Spots and Tides
   renderSpots();
   renderTides();
 }
@@ -157,28 +170,28 @@ function renderDashboard() {
 // Render Tide Predictions Sidebar
 function renderTides() {
   if (!forecastData || !forecastData.days) return;
-  tideListEl.innerHTML = '';
+  tideListEl.innerHTML = "";
 
-  forecastData.days.forEach(day => {
-    const dayBlock = document.createElement('div');
-    dayBlock.className = 'tide-day-block';
+  forecastData.days.forEach((day) => {
+    const dayBlock = document.createElement("div");
+    dayBlock.className = "tide-day-block";
 
-    const dayName = document.createElement('div');
-    dayName.className = 'tide-day-name';
-    dayName.textContent = day.dayName;
+    const dayName = document.createElement("div");
+    dayName.className = "tide-day-name";
+    dayName.textContent = `${day.dayName} (${day.date.substring(5)})`;
 
-    const listItems = document.createElement('div');
-    listItems.className = 'tide-list-items';
+    const listItems = document.createElement("div");
+    listItems.className = "tide-list-items";
 
-    // Retrieve predictions for the selected station ('hnl' or 'mok')
     const predictions = day.tides[activeTideStation] || [];
-    
+
     if (predictions.length === 0) {
-      listItems.innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted);">No predictions.</div>';
+      listItems.innerHTML =
+        '<div style="font-size: 0.8rem; color: var(--text-muted);">No predictions.</div>';
     } else {
-      predictions.forEach(pred => {
-        const item = document.createElement('div');
-        item.className = 'tide-item';
+      predictions.forEach((pred) => {
+        const item = document.createElement("div");
+        item.className = "tide-item";
         item.innerHTML = `
           <span>${pred.time}</span>
           <span class="tide-type-${pred.type.toLowerCase()}">${pred.type}: ${pred.height}</span>
@@ -196,65 +209,65 @@ function renderTides() {
 // Render Surf Spots Cards
 function renderSpots() {
   if (!forecastData || !forecastData.spotsList || !forecastData.days) return;
-  spotsGridEl.innerHTML = '';
+  spotsGridEl.innerHTML = "";
 
-  // Filter spots by region and search query
   let filteredSpots = [...forecastData.spotsList];
-  
-  if (activeRegion !== 'all') {
-    filteredSpots = filteredSpots.filter(s => s.region === activeRegion);
+
+  if (activeRegion !== "all") {
+    filteredSpots = filteredSpots.filter((s) => s.region === activeRegion);
   }
-  
+
   if (searchQuery) {
-    filteredSpots = filteredSpots.filter(s => 
-      s.name.toLowerCase().includes(searchQuery) ||
-      s.region.toLowerCase().includes(searchQuery) ||
-      s.type.toLowerCase().includes(searchQuery) ||
-      s.difficulty.toLowerCase().includes(searchQuery)
+    filteredSpots = filteredSpots.filter(
+      (s) =>
+        s.name.toLowerCase().includes(searchQuery) ||
+        s.region.toLowerCase().includes(searchQuery) ||
+        s.type.toLowerCase().includes(searchQuery) ||
+        s.difficulty.toLowerCase().includes(searchQuery)
     );
   }
 
-  // Sort starred spots to the top
   const starredSpots = getStarredSpots();
   filteredSpots.sort((a, b) => {
     const aStarred = starredSpots.includes(a.id) ? 1 : 0;
     const bStarred = starredSpots.includes(b.id) ? 1 : 0;
-    if (aStarred !== bStarred) {
-      return bStarred - aStarred; // Starred first
-    }
-    return 0; // Maintain original order
+    if (aStarred !== bStarred) return bStarred - aStarred;
+    return 0;
   });
 
   if (filteredSpots.length === 0) {
-    spotsGridEl.innerHTML = '<div class="loading-overlay"><p>No spots found matching filters.</p></div>';
+    spotsGridEl.innerHTML =
+      '<div class="loading-overlay"><p>No spots found matching filters.</p></div>';
     return;
   }
 
-  filteredSpots.forEach(spot => {
-    // Get Day 1 calculations for primary card display
+  filteredSpots.forEach((spot) => {
     const todayForecast = forecastData.days[0]?.spots[spot.id] || [];
-    
-    // Find the peak conditions (max wave size and best rating score) for Today
+
     let peakFace = 0;
     let peakHawaiian = 0;
-    let bestWindClass = 'choppy';
-    let bestWindQuality = 'Onshore';
-    let bestRating = 'Poor';
-    let bestRatingClass = 'rating-poor';
+    let bestWindClass = "choppy";
+    let bestWindQuality = "Onshore";
+    let bestRating = "Poor";
+    let bestRatingClass = "rating-poor";
     let bestRatingScore = 0;
-    
-    // Default to the first time slot (Morning) if no clear peak is found
+    let bestTideHeight = 0;
+    let bestTideTrend = "steady";
+    let day1Confidence = "High";
+
     if (todayForecast.length > 0) {
       peakFace = todayForecast[0].faceHeight;
       peakHawaiian = todayForecast[0].hawaiianHeight;
       bestWindClass = todayForecast[0].windClass;
       bestWindQuality = todayForecast[0].windQuality;
-      bestRating = todayForecast[0].spotRating || 'Poor';
-      bestRatingClass = todayForecast[0].spotRatingClass || 'rating-poor';
+      bestRating = todayForecast[0].spotRating || "Poor";
+      bestRatingClass = todayForecast[0].spotRatingClass || "rating-poor";
       bestRatingScore = todayForecast[0].spotRatingScore || 0;
-      
-      // Look for the absolute max wave height today and the highest spot rating score
-      todayForecast.forEach(slot => {
+      bestTideHeight = todayForecast[0].tideHeight || 0;
+      bestTideTrend = todayForecast[0].tideTrend || "steady";
+      day1Confidence = todayForecast[0].confidence || "High";
+
+      todayForecast.forEach((slot) => {
         if (slot.faceHeight > peakFace) {
           peakFace = slot.faceHeight;
           peakHawaiian = slot.hawaiianHeight;
@@ -265,27 +278,27 @@ function renderSpots() {
           bestRatingScore = slot.spotRatingScore;
           bestWindClass = slot.windClass;
           bestWindQuality = slot.windQuality;
+          bestTideHeight = slot.tideHeight || 0;
+          bestTideTrend = slot.tideTrend || "steady";
         }
       });
     }
 
-    // Determine the overall wave height label (Defaulting to Face Height)
-    const waveHeightStr = peakFace === 0 
-      ? "Flat" 
-      : `${Math.round(peakFace * 0.7)}-${peakFace} ft`;
+    const waveHeightStr = peakFace === 0 ? "Flat" : `${Math.round(peakFace * 0.7)}-${peakFace} ft`;
 
-    // AI Spot Interpreter Data
     const spotAiData = forecastData.narrativeForecast?.spots?.[spot.id] || {};
     const spotNarrativeText = spotAiData.analysis || "No spot-specific predictions generated.";
+    const tideNote = spotAiData.tideNote || "";
+    const swellTrendNote = spotAiData.swellTrendNote || "";
 
     let finalRating = bestRating;
     let finalRatingClass = bestRatingClass;
     let finalRatingScore = bestRatingScore;
 
-    if (spotAiData.ratingRefined && typeof spotAiData.scoreRefined === 'number') {
+    if (spotAiData.ratingRefined && typeof spotAiData.scoreRefined === "number") {
       finalRating = spotAiData.ratingRefined;
       finalRatingScore = spotAiData.scoreRefined;
-      
+
       const score = spotAiData.scoreRefined;
       if (score < 15) finalRatingClass = "rating-very-poor";
       else if (score < 35) finalRatingClass = "rating-poor";
@@ -302,21 +315,30 @@ function renderSpots() {
       finalRatingScore = 0;
     }
 
-    const card = document.createElement('div');
-    card.className = 'card spot-card animate-fade-in';
+    const confidenceClass =
+      day1Confidence === "High"
+        ? "confidence-high"
+        : day1Confidence === "Moderate"
+          ? "confidence-moderate"
+          : "confidence-low";
+
+    const card = document.createElement("div");
+    card.className = "card spot-card animate-fade-in";
     card.id = `spot-card-${spot.id}`;
 
     const isStarred = starredSpots.includes(spot.id);
-    const starClass = isStarred ? 'star-btn active' : 'star-btn';
+    const starClass = isStarred ? "star-btn active" : "star-btn";
 
-    // Spot Card HTML structure
     card.innerHTML = `
       <div class="spot-header">
         <div class="spot-title-area">
-          <span class="spot-name">${spot.name}</span>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <span class="spot-name">${spot.name}</span>
+            <span class="confidence-badge ${confidenceClass}" title="Forecast confidence: ${day1Confidence}">${day1Confidence}</span>
+          </div>
           <span class="spot-region">${spot.region}</span>
         </div>
-        <button class="${starClass}" data-spot="${spot.id}" title="${isStarred ? 'Unstar this spot' : 'Star this spot'}">
+        <button class="${starClass}" data-spot="${spot.id}" title="${isStarred ? "Unstar this spot" : "Star this spot"}">
           <svg class="star-icon" viewBox="0 0 24 24">
             <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
           </svg>
@@ -342,7 +364,7 @@ function renderSpots() {
         <div class="overview-box">
           <div class="overview-label">Wind Quality</div>
           <div class="overview-quality-badge ${bestWindClass}">${bestWindQuality}</div>
-          <div class="overview-val-sub">Today's winds</div>
+          <div class="overview-val-sub">Tide: ${bestTideHeight}ft ${bestTideTrend}</div>
         </div>
       </div>
 
@@ -350,28 +372,45 @@ function renderSpots() {
         <div class="insight-tag">
           <span class="insight-icon">🌊</span>
           <span class="insight-label">Shape:</span>
-          <span class="insight-value">${spotAiData.waveShape || 'N/A'}</span>
+          <span class="insight-value">${spotAiData.waveShape || "N/A"}</span>
         </div>
         <div class="insight-tag">
           <span class="insight-icon">🏄‍♂️</span>
           <span class="insight-label">Board:</span>
-          <span class="insight-value">${spotAiData.recommendedBoard || 'N/A'}</span>
+          <span class="insight-value">${spotAiData.recommendedBoard || "N/A"}</span>
         </div>
         <div class="insight-tag">
           <span class="insight-icon">👥</span>
           <span class="insight-label">Crowd:</span>
-          <span class="insight-value">${spotAiData.crowdFactor || 'N/A'}</span>
+          <span class="insight-value">${spotAiData.crowdFactor || "N/A"}</span>
         </div>
         <div class="insight-tag risk-${getRiskClass(spotAiData.safetyRisk)}">
           <span class="insight-icon">⚠️</span>
           <span class="insight-label">Safety:</span>
-          <span class="insight-value">${spotAiData.safetyRisk || 'N/A'}</span>
+          <span class="insight-value">${spotAiData.safetyRisk || "N/A"}</span>
         </div>
       </div>
+
+      ${
+        tideNote || swellTrendNote
+          ? `
+      <div class="spot-quick-notes">
+        ${tideNote ? `<div class="quick-note tide-note">🌙 Tide: ${tideNote}</div>` : ""}
+        ${swellTrendNote ? `<div class="quick-note trend-note">📈 Trend: ${swellTrendNote}</div>` : ""}
+      </div>`
+          : ""
+      }
 
       <div class="spot-narrative-forecast">
         <div class="narrative-label">Spot Interpretation</div>
         <p class="narrative-text">${spotNarrativeText}</p>
+      </div>
+
+      <div class="feedback-row" data-spot="${spot.id}">
+        <span class="feedback-label">Accurate?</span>
+        <button class="feedback-btn up" data-spot="${spot.id}" data-rating="up">👍</button>
+        <button class="feedback-btn down" data-spot="${spot.id}" data-rating="down">👎</button>
+        <span class="feedback-thanks" style="display:none;">Thanks!</span>
       </div>
 
       <button class="details-toggle" data-spot="${spot.id}">
@@ -382,24 +421,45 @@ function renderSpots() {
       </button>
 
       <div class="spot-details-panel" id="panel-${spot.id}">
-        <!-- Populated day-by-day table -->
         ${renderSevenDayDetails(spot.id)}
       </div>
     `;
 
-    // Hook up star button click
-    const starBtn = card.querySelector('.star-btn');
-    starBtn.addEventListener('click', (e) => {
+    // Star button
+    const starBtn = card.querySelector(".star-btn");
+    starBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       toggleStarSpot(spot.id);
     });
 
-    // Hook up expandable detail toggle
-    const toggleBtn = card.querySelector('.details-toggle');
-    toggleBtn.addEventListener('click', (e) => {
+    // Feedback buttons
+    const feedbackBtns = card.querySelectorAll(".feedback-btn");
+    feedbackBtns.forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const rating = btn.dataset.rating;
+        const thanksEl = card.querySelector(".feedback-thanks");
+        const date = forecastData.days[0]?.date;
+        const success = await submitFeedback(spot.id, date, "morning", rating);
+        if (success && thanksEl) {
+          thanksEl.style.display = "inline";
+          feedbackBtns.forEach((b) => (b.disabled = true));
+          setTimeout(() => {
+            thanksEl.style.display = "none";
+            feedbackBtns.forEach((b) => (b.disabled = false));
+          }, 2000);
+        }
+      });
+    });
+
+    // Detail toggle
+    const toggleBtn = card.querySelector(".details-toggle");
+    toggleBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const isExpanded = card.classList.toggle('expanded');
-      toggleBtn.querySelector('span').textContent = isExpanded ? 'Hide 7-Day Details' : 'Show 7-Day Details';
+      const isExpanded = card.classList.toggle("expanded");
+      toggleBtn.querySelector("span").textContent = isExpanded
+        ? "Hide 7-Day Details"
+        : "Show 7-Day Details";
     });
 
     spotsGridEl.appendChild(card);
@@ -408,35 +468,44 @@ function renderSpots() {
 
 // Render the 7-day morning/mid-day/afternoon tables inside card
 function renderSevenDayDetails(spotId) {
-  let html = '';
-  
-  forecastData.days.forEach(day => {
+  let html = "";
+
+  forecastData.days.forEach((day) => {
     const spotForecasts = day.spots[spotId] || [];
     if (spotForecasts.length === 0) return;
 
+    const confClass =
+      day.confidence === "High"
+        ? "confidence-high"
+        : day.confidence === "Moderate"
+          ? "confidence-moderate"
+          : "confidence-low";
+
     html += `
       <div class="detail-row">
-        <div class="detail-row-header">${day.dayName} (${day.date.substring(5)})</div>
+        <div class="detail-row-header">
+          ${day.dayName} (${day.date.substring(5)})
+          <span class="confidence-badge ${confClass}" style="margin-left:0.5rem;">${day.confidence}</span>
+        </div>
         <div style="display: flex; flex-direction: column; gap: 0.25rem;">
     `;
 
-    spotForecasts.forEach(slot => {
-      // Swell text
-      const swellText = slot.faceHeight === 0 
-        ? "Flat" 
-        : `${slot.swellHeight}ft @ ${slot.swellPeriod}s from ${slot.swellDir}°`;
-      
-      // Wind text
+    spotForecasts.forEach((slot) => {
+      const swellText =
+        slot.faceHeight === 0
+          ? "Flat"
+          : `${slot.swellHeight}ft @ ${slot.swellPeriod}s from ${slot.swellDir}°`;
       const windText = `${slot.windSpeed}kts ${getWindCardinal(slot.windDir)}`;
-      
-      // Wave size text
-      const surfText = slot.faceHeight === 0
-        ? "0ft"
-        : `${slot.hawaiianHeight}ft (${slot.faceHeight}ft face)`;
-
-      // Spot rating text/class
+      const surfText =
+        slot.faceHeight === 0 ? "0ft" : `${slot.hawaiianHeight}ft (${slot.faceHeight}ft face)`;
       const ratingText = slot.faceHeight === 0 ? "Flat" : slot.spotRating;
-      const ratingClass = slot.faceHeight === 0 ? "rating-flat" : (slot.spotRatingClass || "rating-poor");
+      const ratingClass =
+        slot.faceHeight === 0 ? "rating-flat" : slot.spotRatingClass || "rating-poor";
+      const tideText = `${slot.tideHeight || "?"}ft ${slot.tideTrend || ""}`;
+      const multiSwellShort =
+        slot.multiSwell && slot.multiSwell !== "N/A"
+          ? slot.multiSwell.split(" + ").slice(0, 2).join("+")
+          : "";
 
       html += `
         <div class="detail-grid">
@@ -444,6 +513,8 @@ function renderSevenDayDetails(spotId) {
           <div class="detail-metric"><span class="detail-rating-badge ${ratingClass}">${ratingText}</span></div>
           <div class="detail-metric">💨 ${windText}</div>
           <div class="detail-metric">🌊 ${swellText}</div>
+          <div class="detail-metric detail-metric-small">🌙 ${tideText}</div>
+          ${multiSwellShort ? `<div class="detail-metric detail-metric-small detail-multi-swell">🔀 ${multiSwellShort}</div>` : ""}
         </div>
       `;
     });
@@ -459,16 +530,19 @@ function renderSevenDayDetails(spotId) {
 
 // Convert wind direction degrees to cardinal letters
 function getWindCardinal(degrees) {
-  const cardinals = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-  const val = Math.floor((degrees / 22.5) + 0.5);
+  const cardinals = [
+    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW",
+  ];
+  const val = Math.floor(degrees / 22.5 + 0.5);
   return cardinals[val % 16];
 }
 
 // Parse risk levels to CSS classes
 function getRiskClass(safetyRisk) {
-  if (!safetyRisk) return 'low';
+  if (!safetyRisk) return "low";
   const risk = safetyRisk.toLowerCase();
-  if (risk.includes('high')) return 'high';
-  if (risk.includes('moderate') || risk.includes('medium')) return 'moderate';
-  return 'low';
+  if (risk.includes("high")) return "high";
+  if (risk.includes("moderate") || risk.includes("medium")) return "moderate";
+  return "low";
 }

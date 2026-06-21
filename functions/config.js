@@ -15,7 +15,13 @@ export const spots = [
     difficulty: "Expert",
     description: "The world's most famous, heavy barrel. Breaking over a shallow, jagged reef. Pipeline is a steep left, while Backdoor is the fast right.",
     optimalTide: "medium",
-    tideSensitivity: 0.6
+    tideSensitivity: 0.6,
+    bottomProfile: "steep-reef",
+    optimalPeriodMin: 14,
+    optimalPeriodMax: 20,
+    optimalTideHeight: 1.0,
+    prefersRising: true,
+    maxHoldingSize: 25
   },
   {
     id: "waimea",
@@ -31,7 +37,13 @@ export const spots = [
     difficulty: "Expert",
     description: "The birthplace of big wave riding. Needs massive swells to start breaking properly. Heavy shorebreak and long, scaling walls.",
     optimalTide: "medium",
-    tideSensitivity: 0.5
+    tideSensitivity: 0.5,
+    bottomProfile: "gradual-reef",
+    optimalPeriodMin: 16,
+    optimalPeriodMax: 22,
+    optimalTideHeight: 0.5,
+    prefersRising: false,
+    maxHoldingSize: 50
   },
   {
     id: "sunset",
@@ -47,7 +59,13 @@ export const spots = [
     difficulty: "Advanced",
     description: "A wide, shifty arena with massive waves and strong currents. Sunset is a powerful right-hand reef break.",
     optimalTide: "medium",
-    tideSensitivity: 0.4
+    tideSensitivity: 0.4,
+    bottomProfile: "gradual-reef",
+    optimalPeriodMin: 13,
+    optimalPeriodMax: 20,
+    optimalTideHeight: 1.0,
+    prefersRising: false,
+    maxHoldingSize: 30
   },
   {
     id: "haleiwa",
@@ -63,7 +81,13 @@ export const spots = [
     difficulty: "Advanced",
     description: "A high-performance right-hander that breaks over a shallow reef shelf. Heavy current and a challenging rip.",
     optimalTide: "low",
-    tideSensitivity: 0.8
+    tideSensitivity: 0.8,
+    bottomProfile: "reef-pass",
+    optimalPeriodMin: 12,
+    optimalPeriodMax: 17,
+    optimalTideHeight: 0.0,
+    prefersRising: true,
+    maxHoldingSize: 15
   },
   {
     id: "laniakea",
@@ -79,7 +103,13 @@ export const spots = [
     difficulty: "Advanced",
     description: "A long, walling right-hander that is highly popular and can hold size. Watch out for the strong current and turtles.",
     optimalTide: "medium",
-    tideSensitivity: 0.5
+    tideSensitivity: 0.5,
+    bottomProfile: "gradual-reef",
+    optimalPeriodMin: 11,
+    optimalPeriodMax: 16,
+    optimalTideHeight: 1.0,
+    prefersRising: true,
+    maxHoldingSize: 12
   },
   {
     id: "chuns",
@@ -95,7 +125,13 @@ export const spots = [
     difficulty: "Intermediate",
     description: "A friendly, long right-hander popular with longboarders, but can get hollow and fast when the swell is up.",
     optimalTide: "medium",
-    tideSensitivity: 0.4
+    tideSensitivity: 0.4,
+    bottomProfile: "gradual-reef",
+    optimalPeriodMin: 10,
+    optimalPeriodMax: 15,
+    optimalTideHeight: 1.0,
+    prefersRising: false,
+    maxHoldingSize: 8
   },
   {
     id: "rockypoint",
@@ -111,7 +147,13 @@ export const spots = [
     difficulty: "Advanced",
     description: "Highly consistent, offering both high-performance lefts and rights. Shallow, sharp reef and a very crowded peak.",
     optimalTide: "medium",
-    tideSensitivity: 0.7
+    tideSensitivity: 0.7,
+    bottomProfile: "steep-reef",
+    optimalPeriodMin: 12,
+    optimalPeriodMax: 18,
+    optimalTideHeight: 0.5,
+    prefersRising: true,
+    maxHoldingSize: 12
   },
 
   // South Shore
@@ -129,7 +171,13 @@ export const spots = [
     difficulty: "Advanced",
     description: "Oahu's premier south shore wave. A fast, hollow left-hander that breaks along the edge of the yacht harbor channel.",
     optimalTide: "low",
-    tideSensitivity: 0.8
+    tideSensitivity: 0.8,
+    bottomProfile: "steep-reef",
+    optimalPeriodMin: 14,
+    optimalPeriodMax: 18,
+    optimalTideHeight: -0.2,
+    prefersRising: false,
+    maxHoldingSize: 12
   },
   {
     id: "kaisers",
@@ -145,7 +193,13 @@ export const spots = [
     difficulty: "Advanced",
     description: "A short, fast, punchy right-hander that is highly popular and breaks over a shallow reef.",
     optimalTide: "medium",
-    tideSensitivity: 0.7
+    tideSensitivity: 0.7,
+    bottomProfile: "steep-reef",
+    optimalPeriodMin: 11,
+    optimalPeriodMax: 16,
+    optimalTideHeight: 0.5,
+    prefersRising: false,
+    maxHoldingSize: 8
   },
   {
     id: "queens",
@@ -161,7 +215,13 @@ export const spots = [
     difficulty: "Intermediate",
     description: "A beautiful, peeling right-hander in Waikiki. Highly historical and the home of modern longboarding.",
     optimalTide: "medium",
-    tideSensitivity: 0.5
+    tideSensitivity: 0.5,
+    bottomProfile: "gradual-reef",
+    optimalPeriodMin: 10,
+    optimalPeriodMax: 15,
+    optimalTideHeight: 1.0,
+    prefersRising: false,
+    maxHoldingSize: 6
   },
   {
     id: "canoes",
@@ -177,7 +237,13 @@ export const spots = [
     difficulty: "Beginner",
     description: "A gentle, rolling wave perfect for beginners, surf schools, and outrigger canoes. Breaks over a deep, sandy reef.",
     optimalTide: "any",
-    tideSensitivity: 0.2
+    tideSensitivity: 0.2,
+    bottomProfile: "gradual-reef",
+    optimalPeriodMin: 8,
+    optimalPeriodMax: 13,
+    optimalTideHeight: 1.5,
+    prefersRising: false,
+    maxHoldingSize: 5
   },
   {
     id: "cliffs",
@@ -193,7 +259,13 @@ export const spots = [
     difficulty: "Intermediate",
     description: "Consistently catches any swell. Offers multiple shifty peaks with deep-water channels. Often windy.",
     optimalTide: "any",
-    tideSensitivity: 0.3
+    tideSensitivity: 0.3,
+    bottomProfile: "gradual-reef",
+    optimalPeriodMin: 9,
+    optimalPeriodMax: 16,
+    optimalTideHeight: 1.5,
+    prefersRising: false,
+    maxHoldingSize: 10
   },
   {
     id: "whiteplains",
@@ -209,7 +281,13 @@ export const spots = [
     difficulty: "Beginner",
     description: "A fun, soft longboard wave on the Ewa plain. Ideal for beginners and families.",
     optimalTide: "any",
-    tideSensitivity: 0.2
+    tideSensitivity: 0.2,
+    bottomProfile: "sandbar",
+    optimalPeriodMin: 7,
+    optimalPeriodMax: 12,
+    optimalTideHeight: 1.0,
+    prefersRising: false,
+    maxHoldingSize: 6
   },
   {
     id: "secrets",
@@ -225,7 +303,13 @@ export const spots = [
     difficulty: "Advanced",
     description: "A fast, hollow reef break in Aina Haina. It works on solid south swells but can get very shallow and sharp at low tide.",
     optimalTide: "low",
-    tideSensitivity: 0.8
+    tideSensitivity: 0.8,
+    bottomProfile: "steep-reef",
+    optimalPeriodMin: 12,
+    optimalPeriodMax: 17,
+    optimalTideHeight: -0.2,
+    prefersRising: false,
+    maxHoldingSize: 8
   },
   {
     id: "toes",
@@ -241,7 +325,13 @@ export const spots = [
     difficulty: "Intermediate",
     description: "A long, gentle wave popular for longboarding in Aina Haina. It has a soft, peeling profile and breaks over a deep reef.",
     optimalTide: "any",
-    tideSensitivity: 0.3
+    tideSensitivity: 0.3,
+    bottomProfile: "gradual-reef",
+    optimalPeriodMin: 8,
+    optimalPeriodMax: 14,
+    optimalTideHeight: 1.0,
+    prefersRising: false,
+    maxHoldingSize: 6
   },
 
   // West Side
@@ -259,7 +349,13 @@ export const spots = [
     difficulty: "Advanced",
     description: "A legendary, powerful right-hand point break that can hold huge winter swells and nice summer south swells.",
     optimalTide: "medium",
-    tideSensitivity: 0.5
+    tideSensitivity: 0.5,
+    bottomProfile: "reef-pass",
+    optimalPeriodMin: 12,
+    optimalPeriodMax: 20,
+    optimalTideHeight: 1.0,
+    prefersRising: false,
+    maxHoldingSize: 20
   },
   {
     id: "tracks",
@@ -275,7 +371,13 @@ export const spots = [
     difficulty: "Intermediate",
     description: "Located near the power plant. Offers fun, peeling lefts and rights over a mix of reef and sand.",
     optimalTide: "medium",
-    tideSensitivity: 0.5
+    tideSensitivity: 0.5,
+    bottomProfile: "gradual-reef",
+    optimalPeriodMin: 10,
+    optimalPeriodMax: 16,
+    optimalTideHeight: 1.0,
+    prefersRising: false,
+    maxHoldingSize: 8
   },
   {
     id: "yokohama",
@@ -291,7 +393,13 @@ export const spots = [
     difficulty: "Expert",
     description: "A heavy, fast shorebreak that breaks in shallow water. Beautiful but highly dangerous.",
     optimalTide: "low",
-    tideSensitivity: 0.8
+    tideSensitivity: 0.8,
+    bottomProfile: "sandbar",
+    optimalPeriodMin: 13,
+    optimalPeriodMax: 18,
+    optimalTideHeight: -0.2,
+    prefersRising: true,
+    maxHoldingSize: 10
   },
 
   // East Side (Windward)
@@ -309,7 +417,13 @@ export const spots = [
     difficulty: "Intermediate",
     description: "Famous bodysurfing and bodyboarding spot. A heavy shorebreak breaking on sand, with scenic cliffs behind.",
     optimalTide: "medium",
-    tideSensitivity: 0.4
+    tideSensitivity: 0.4,
+    bottomProfile: "sandbar",
+    optimalPeriodMin: 7,
+    optimalPeriodMax: 12,
+    optimalTideHeight: 1.5,
+    prefersRising: false,
+    maxHoldingSize: 8
   },
   {
     id: "sandybeach",
@@ -325,7 +439,13 @@ export const spots = [
     difficulty: "Advanced",
     description: "Infamous shorebreak that breaks in inches of water directly on sand. Very dangerous, popular for bodyboarding.",
     optimalTide: "high",
-    tideSensitivity: 0.9
+    tideSensitivity: 0.9,
+    bottomProfile: "sandbar",
+    optimalPeriodMin: 8,
+    optimalPeriodMax: 14,
+    optimalTideHeight: 2.5,
+    prefersRising: true,
+    maxHoldingSize: 6
   },
   {
     id: "flatisland",
@@ -341,6 +461,12 @@ export const spots = [
     difficulty: "Beginner",
     description: "A soft, slow wave that breaks off Flat Island in Kailua Bay. Great for longboarding and kayak-surfing.",
     optimalTide: "medium",
-    tideSensitivity: 0.3
+    tideSensitivity: 0.3,
+    bottomProfile: "gradual-reef",
+    optimalPeriodMin: 6,
+    optimalPeriodMax: 11,
+    optimalTideHeight: 1.0,
+    prefersRising: false,
+    maxHoldingSize: 5
   }
 ];
