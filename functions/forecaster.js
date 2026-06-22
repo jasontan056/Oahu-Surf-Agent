@@ -203,13 +203,14 @@ export function calculateSpotWaveHeight(spot, swellComponents, tideHeight) {
   // Energy-based superposition: sqrt(sum of squares)
   let faceHeight = Math.sqrt(totalFaceHeightSq);
 
-  // Depth-limited breaking cap (waves break when height ≈ 1.3 × water depth)
-  if (tideHeight !== undefined && tideHeight !== null && spot.bottomProfile === "steep-reef") {
-    const depthLimit = Math.max(0.5, tideHeight * 1.3 + 1.0);
-    faceHeight = Math.min(faceHeight, depthLimit);
-  }
+  // Depth-limited breaking cap — only applies to sandbar shorebreaks where the
+  // wave genuinely runs out of water at low tide.  Reef breaks sit several feet
+  // below MLLW so swell energy, not water depth, is the limiting factor — the
+  // bathymetric shoaling coefficient already captures bottom-profile amplification.
   if (tideHeight !== undefined && tideHeight !== null && spot.bottomProfile === "sandbar") {
-    const depthLimit = Math.max(0.3, tideHeight * 1.1);
+    // Sandbars have roughly 2 ft of permanent depth at MLLW, so actual water
+    // depth ≈ tideHeight + 2.0 ft.  Waves break when H ≈ 1.3 × depth.
+    const depthLimit = Math.max(1.0, (tideHeight + 2.0) * 1.3);
     faceHeight = Math.min(faceHeight, depthLimit);
   }
 
