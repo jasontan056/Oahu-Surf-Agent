@@ -31,8 +31,8 @@
         <a href="explainer.html" style="color:var(--accent-cyan);text-decoration:none;font-size:0.8rem;font-weight:500;margin-right:0.5rem;">📐 How It Works</a>
         <div class="status-indicator"></div>
         <span id="last-updated">Fetching latest swell data...</span>
-        <button id="refresh-btn" class="refresh-btn" title="Force Refresh Forecast">
-          <svg class="refresh-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <button id="refresh-btn" class="refresh-btn" title="Force Refresh Forecast" aria-label="Refresh forecast data">
+          <svg class="refresh-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
         </button>
       </div>
     </header>
@@ -56,16 +56,17 @@
 
     <!-- Navigation & Filters -->
     <div class="filter-bar animate-fade-in">
-      <nav class="region-nav">
-        <button class="nav-tab active" data-region="all">All Shores</button>
-        <button class="nav-tab" data-region="North Shore">North Shore</button>
-        <button class="nav-tab" data-region="South Shore">South Shore</button>
-        <button class="nav-tab" data-region="West Side">West Side</button>
-        <button class="nav-tab" data-region="East Side">East Side</button>
+      <nav class="region-nav" role="tablist" aria-label="Filter by region">
+        <button class="nav-tab active" data-region="all" role="tab" aria-selected="true" aria-label="Show all shores">All Shores</button>
+        <button class="nav-tab" data-region="North Shore" role="tab" aria-selected="false" aria-label="Filter North Shore">North Shore</button>
+        <button class="nav-tab" data-region="South Shore" role="tab" aria-selected="false" aria-label="Filter South Shore">South Shore</button>
+        <button class="nav-tab" data-region="West Side" role="tab" aria-selected="false" aria-label="Filter West Side">West Side</button>
+        <button class="nav-tab" data-region="East Side" role="tab" aria-selected="false" aria-label="Filter East Side">East Side</button>
       </nav>
-      <div class="search-box">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="search-input" placeholder="Search spots..." />
+      <div class="search-box" role="search" aria-label="Search surf spots">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input type="text" id="search-input" placeholder="Search spots..." aria-label="Search surf spots by name, region, type, or difficulty" />
+        <button class="search-clear-btn" id="search-clear-btn" aria-label="Clear search" type="button">✕</button>
       </div>
     </div>
 
@@ -78,22 +79,22 @@
     <!-- Main Layout Grid -->
     <div class="main-layout">
       <!-- Left Side: Surf Spots Grid -->
-      <main class="spots-section">
+      <main class="spots-section" aria-label="Surf spot forecasts">
         <div class="spots-grid" id="spots-grid">
           <!-- Dynamically populated spot cards -->
         </div>
       </main>
 
       <!-- Right Side: Sidebar Tides -->
-      <aside class="sidebar animate-fade-in">
+      <aside class="sidebar animate-fade-in" aria-label="Tide predictions">
         <!-- Tide Predictions Card -->
         <div class="card tide-card">
           <div class="card-header">
             <h2>Tide Predictions</h2>
           </div>
-          <div class="tide-station-tabs">
-            <button class="tide-tab active" data-station="hnl">Honolulu (S/W/N)</button>
-            <button class="tide-tab" data-station="mok">Mokuoloe (E)</button>
+          <div class="tide-station-tabs" role="tablist" aria-label="Tide station">
+            <button class="tide-tab active" data-station="hnl" role="tab" aria-selected="true">Honolulu (S/W/N)</button>
+            <button class="tide-tab" data-station="mok" role="tab" aria-selected="false">Mokuoloe (E)</button>
           </div>
           <div class="tide-predictions-list" id="tide-list">
             <!-- Dynamically populated tide heights -->

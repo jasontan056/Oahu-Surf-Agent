@@ -17,6 +17,10 @@ const regionSummaryTitle = document.getElementById("region-summary-title");
 const regionSummaryText = document.getElementById("region-summary-text");
 const regionTabs = document.querySelectorAll(".nav-tab");
 const tideTabs = document.querySelectorAll(".tide-tab");
+const searchInput = document.getElementById("search-input");
+const searchClearBtn = document.getElementById("search-clear-btn");
+
+const CACHE_KEY = "oahu_surf_forecast_cache";
 
 // Starred Spots Helpers
 function getStarredSpots() {
@@ -52,8 +56,12 @@ function setupEventListeners() {
 
   regionTabs.forEach((tab) => {
     tab.addEventListener("click", (e) => {
-      regionTabs.forEach((t) => t.classList.remove("active"));
+      regionTabs.forEach((t) => {
+        t.classList.remove("active");
+        t.setAttribute("aria-selected", "false");
+      });
       tab.classList.add("active");
+      tab.setAttribute("aria-selected", "true");
       activeRegion = tab.dataset.region;
       renderDashboard();
     });
@@ -61,19 +69,43 @@ function setupEventListeners() {
 
   tideTabs.forEach((tab) => {
     tab.addEventListener("click", (e) => {
-      tideTabs.forEach((t) => t.classList.remove("active"));
+      tideTabs.forEach((t) => {
+        t.classList.remove("active");
+        t.setAttribute("aria-selected", "false");
+      });
       tab.classList.add("active");
+      tab.setAttribute("aria-selected", "true");
       activeTideStation = tab.dataset.station;
       renderTides();
     });
   });
 
-  const searchInput = document.getElementById("search-input");
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       searchQuery = e.target.value.toLowerCase().trim();
+      updateSearchClearButton();
       renderSpots();
     });
+  }
+
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener("click", () => {
+      searchInput.value = "";
+      searchQuery = "";
+      updateSearchClearButton();
+      renderSpots();
+      searchInput.focus();
+    });
+  }
+}
+
+// Toggle search clear button visibility
+function updateSearchClearButton() {
+  if (!searchClearBtn) return;
+  if (searchQuery.length > 0) {
+    searchClearBtn.classList.add("visible");
+  } else {
+    searchClearBtn.classList.remove("visible");
   }
 }
 
@@ -95,15 +127,42 @@ async function fetchForecast(force = false) {
     forecastData = await response.json();
     console.log("Forecast loaded successfully:", forecastData);
 
+    // Cache for offline use
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        data: forecastData,
+        cachedAt: Date.now()
+      }));
+    } catch (e) {
+      // localStorage may be full or unavailable
+    }
+
     renderDashboard();
   } catch (error) {
     console.error("Error fetching forecast:", error);
-    showError(error.message);
+    // Try loading cached data on network failure
+    const cached = loadCachedForecast();
+    if (cached && !force) {
+      forecastData = cached.data;
+      console.log("Loaded cached forecast from", new Date(cached.cachedAt));
+      renderDashboard();
+      showCachedIndicator(cached.cachedAt);
+    } else {
+      showError(error.message);
+    }
   }
 }
 
 // Show Loading State
 function showLoading() {
+  // Try to show cached data with skeleton overlay
+  const cached = loadCachedForecast();
+  if (cached && !forecastData) {
+    forecastData = cached.data;
+    renderDashboard();
+    showCachedIndicator(cached.cachedAt);
+  }
+
   spotsGridEl.innerHTML = `
     <div class="loading-overlay">
       <div class="spinner"></div>
@@ -114,12 +173,49 @@ function showLoading() {
   lastUpdatedEl.textContent = "Fetching...";
 }
 
+// Load cached forecast from localStorage
+function loadCachedForecast() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    // Cache valid for 6 hours
+    if (Date.now() - cached.cachedAt > 6 * 60 * 60 * 1000) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+    return cached;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Show indicator when using cached data
+function showCachedIndicator(cachedAt) {
+  const age = Math.round((Date.now() - cachedAt) / 60000);
+  const ageStr = age < 60 ? `${age}m ago` : `${Math.round(age / 60)}h ago`;
+  lastUpdatedEl.textContent = `Cached ${ageStr} · tap refresh`;
+  lastUpdatedEl.style.color = "var(--color-fair)";
+  setTimeout(() => {
+    lastUpdatedEl.style.color = "";
+  }, 5000);
+}
+
 // Show Error State
 function showError(message) {
+  // Try cache one last time
+  const cached = loadCachedForecast();
+  if (cached && !forecastData) {
+    forecastData = cached.data;
+    renderDashboard();
+    showCachedIndicator(cached.cachedAt);
+    return;
+  }
+
   spotsGridEl.innerHTML = `
     <div class="loading-overlay" style="color: #ef4444;">
-      <p>Error loading forecast: ${message}</p>
-      <button onclick="fetchForecast()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: var(--accent-blue); border: none; border-radius: 6px; color: white; cursor: pointer;">Try Again</button>
+      <p>⚠️ Error loading forecast: ${message}</p>
+      <button onclick="fetchForecast()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: var(--accent-blue); border: none; border-radius: 6px; color: white; cursor: pointer; min-height:44px;">Try Again</button>
     </div>
   `;
 }
@@ -306,6 +402,9 @@ function renderSpots() {
     const card = document.createElement("div");
     card.className = "card spot-card animate-fade-in";
     card.id = `spot-card-${spot.id}`;
+    card.setAttribute("role", "article");
+    card.setAttribute("aria-label", `${spot.name} surf forecast`);
+    card.setAttribute("tabindex", "0");
 
     const isStarred = starredSpots.includes(spot.id);
     const starClass = isStarred ? "star-btn active" : "star-btn";
@@ -408,12 +507,29 @@ function renderSpots() {
 
     // Detail toggle
     const toggleBtn = card.querySelector(".details-toggle");
-    toggleBtn.addEventListener("click", (e) => {
+    const toggleDetail = (e) => {
       e.stopPropagation();
       const isExpanded = card.classList.toggle("expanded");
       toggleBtn.querySelector("span").textContent = isExpanded
         ? "Hide 7-Day Details"
         : "Show 7-Day Details";
+      toggleBtn.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+    };
+    toggleBtn.addEventListener("click", toggleDetail);
+
+    // Tap entire card to expand details (mobile-friendly)
+    card.addEventListener("click", (e) => {
+      // Don't toggle if user clicked star button or detail toggle directly
+      if (e.target.closest(".star-btn") || e.target.closest(".details-toggle")) return;
+      toggleDetail(e);
+    });
+
+    // Keyboard support for card expansion
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleDetail(e);
+      }
     });
 
     spotsGridEl.appendChild(card);
@@ -422,7 +538,7 @@ function renderSpots() {
 
 // Render the 7-day morning/mid-day/afternoon tables inside card
 function renderSevenDayDetails(spotId) {
-  let html = "";
+  let html = '<div class="detail-scroll-wrapper">';
 
   forecastData.days.forEach((day) => {
     const spotForecasts = day.spots[spotId] || [];
@@ -479,6 +595,7 @@ function renderSevenDayDetails(spotId) {
     `;
   });
 
+  html += '</div>';
   return html;
 }
 
