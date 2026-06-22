@@ -11,7 +11,7 @@ import {
   calculateSpotQuality,
   calculateConfidence
 } from "./forecaster.js";
-import { generateNarrativeForecast } from "./llm_client.js";
+import { generateNarrativeForecast, safeParseLLMJson } from "./llm_client.js";
 
 // Helper to build the explainer prompt and call DeepSeek
 async function generateExplainer(analysisData) {
@@ -122,7 +122,7 @@ IMPORTANT RULES:
     }
 
     const result = await response.json();
-    return JSON.parse(result.choices[0].message.content);
+    return safeParseLLMJson(result.choices[0].message.content);
   } catch (error) {
     console.error("Explainer generation failed:", error);
     return null;

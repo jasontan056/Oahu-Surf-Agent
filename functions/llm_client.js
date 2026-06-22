@@ -1,4 +1,53 @@
 // Narrative generation service client for generating surf forecast texts
+
+/**
+ * Robust JSON parser for LLM output.  Handles common DeepSeek quirks:
+ *  - markdown code fences (```json ... ```)
+ *  - unescaped control characters inside strings (e.g. raw newlines)
+ *  - trailing commas before closing brackets/braces
+ */
+export function safeParseLLMJson(rawText) {
+  if (!rawText || typeof rawText !== "string") {
+    throw new SyntaxError("Empty or non-string LLM response");
+  }
+
+  let cleaned = rawText.trim();
+
+  // 1. Strip markdown code fences
+  cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, "");
+  cleaned = cleaned.replace(/\n?\s*```$/i, "");
+
+  // 2. Remove control characters (U+0000–U+001F) except \n, \r, \t
+  //    These show up when the LLM embeds raw newlines/tabs inside JSON string values.
+  cleaned = cleaned.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]+/g, " ");
+
+  // 3. Try vanilla parse first
+  try {
+    return JSON.parse(cleaned);
+  } catch (_first) {
+    // 4. Remove trailing commas (common LLM mistake)
+    const noTrailingCommas = cleaned.replace(/,(\s*[}\]])/g, "$1");
+    try {
+      return JSON.parse(noTrailingCommas);
+    } catch (_second) {
+      // 5. Last resort: try to extract the first JSON object/array
+      const firstBrace = cleaned.indexOf("{");
+      const firstBracket = cleaned.indexOf("[");
+      let start = -1;
+      if (firstBrace >= 0 && (firstBracket < 0 || firstBrace < firstBracket)) {
+        start = firstBrace;
+      } else if (firstBracket >= 0) {
+        start = firstBracket;
+      }
+      if (start >= 0) {
+        const snippet = cleaned.slice(start);
+        return JSON.parse(snippet.replace(/,(\s*[}\]])/g, "$1"));
+      }
+      throw _second;
+    }
+  }
+}
+
 export async function generateNarrativeForecast(dataSummary) {
   const apiKey = process.env.DEEPSEEK_API_SECRET || process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
@@ -98,7 +147,7 @@ Your tone should be authoritative, local, and focused on wave quality. Reference
 
     const result = await response.json();
     const contentText = result.choices[0].message.content;
-    return JSON.parse(contentText);
+    return safeParseLLMJson(contentText);
   } catch (error) {
     console.error("Error communicating with narrative forecast service:", error);
     return {
